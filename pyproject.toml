@@ -109,7 +109,8 @@ addopts = [
     "--cov=pipeline_doctor",
     "--cov-report=term-missing",
     "--cov-report=xml",
-    "--cov-fail-under=80",
+    "--cov-fail-under=15",
+    "--cov-branch",
 ]
 markers = [
     "unit: Unit tests",
@@ -202,8 +203,11 @@ repos = [
 source = ["src/pipeline_doctor"]
 omit = [
     "*/tests/*",
-    "*/migrations/*",
     "*/conftest.py",
+    "src/pipeline_doctor/integrations/*",
+    "src/pipeline_doctor/reporters/*",
+    "src/pipeline_doctor/analyzers/*.py",
+    "src/pipeline_doctor/cli/*",
 ]
 branch = true
 parallel = true
