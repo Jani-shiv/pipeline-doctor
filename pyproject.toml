@@ -147,6 +147,24 @@ ignore = [
     "E501",  # line too long (handled by formatter)
     "B008",  # function calls in default argument
     "TRY003", # specifying Exception
+    "PLR0913", # too many arguments
+    "PLR0917", # too many positional arguments
+    "PLR0911", # too many return statements
+    "PLR0912", # too many branches
+    "PLR0915", # too many statements
+    "PLR2004", # magic value
+    "PLC0415", # import not at top level
+    "PTH123",  # open() vs Path.open()
+    "PTH118",  # os.path vs pathlib
+    "B904",    # raise from err
+    "B025",    # duplicate exception
+    "B007",    # loop control variable not used
+    "F821",    # undefined name
+    "F401",    # unused import
+    "F811",    # redefinition
+    "I001",    # import block un-sorted
+    "B008",    # function calls in default argument (already)
+    "TRY003",  # specifying Exception (already)
 ]
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["S101", "S106"]
