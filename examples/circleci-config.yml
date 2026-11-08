@@ -1,0 +1,163 @@
+version: 2.1
+
+orbs:
+  python: circleci/python@2.1.0
+  docker: circleci/docker@2.4.0
+
+jobs:
+  lint:
+    executor:
+      name: python/default
+      tag: '3.11'
+    steps:
+      - checkout
+      - python/install-packages:
+          pkg-manager: pip
+          packages: '.[dev]'
+      - run:
+          name: Run linter
+          command: ruff check src tests
+      - run:
+          name: Check formatting
+          command: ruff format --check src tests
+
+  test-311:
+    executor:
+      name: python/default
+      tag: '3.11'
+    steps:
+      - checkout
+      - python/install-packages:
+          pkg-manager: pip
+          packages: '.[dev]'
+      - run:
+          name: Run tests
+          command: pytest --cov=pipeline_doctor --cov-report=xml --cov-report=term-missing
+      - run:
+          name: Upload coverage
+          command: |
+            if [ -f coverage.xml ]; then
+              curl -X POST "https://codecov.io/upload/v4?package=pytest&branch=$CIRCLE_BRANCH&commit=$CIRCLE_SHA1" \
+                -H "Content-Type: text/xml" \
+                --data-binary @coverage.xml
+            fi
+
+  test-312:
+    executor:
+      name: python/default
+      tag: '3.12'
+    steps:
+      - checkout
+      - python/install-packages:
+          pkg-manager: pip
+          packages: '.[dev]'
+      - run:
+          name: Run tests
+          command: pytest --cov=pipeline_doctor
+
+  build:
+    executor:
+      name: python/default
+      tag: '3.11'
+    steps:
+      - checkout
+      - python/install-packages:
+          pkg-manager: pip
+          packages: 'build twine'
+      - run:
+          name: Build package
+          command: python -m build
+      - run:
+          name: Check package
+          command: twine check dist/*
+      - persist_to_workspace:
+          root: .
+          paths:
+            - dist/*
+
+  docker:
+    executor:
+      name: docker/docker
+      tag: '24'
+    steps:
+      - checkout
+      - setup_remote_docker:
+          version: '24'
+      - attach_workspace:
+          at: .
+      - run:
+          name: Build Docker image
+          command: |
+            docker build -t pipeline-doctor:${CIRCLE_BUILD_NUM} .
+            docker tag pipeline-doctor:${CIRCLE_BUILD_NUM} ${CIRCLE_REGISTRY:-docker.io/your-org}/pipeline-doctor:${CIRCLE_BUILD_NUM}
+            docker tag pipeline-doctor:${CIRCLE_BUILD_NUM} ${CIRCLE_REGISTRY:-docker.io/your-org}/pipeline-doctor:latest
+      - run:
+          name: Push Docker image
+          command: |
+            echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+            docker push ${CIRCLE_REGISTRY:-docker.io/your-org}/pipeline-doctor:${CIRCLE_BUILD_NUM}
+            docker push ${CIRCLE_REGISTRY:-docker.io/your-org}/pipeline-doctor:latest
+      - when:
+          condition:
+            equal: [main, << pipeline.git.branch >>]
+          steps:
+            - run:
+                name: Tag release
+                command: |
+                  if [[ -n "$CIRCLE_TAG" ]]; then
+                    docker tag pipeline-doctor:${CIRCLE_BUILD_NUM} ${CIRCLE_REGISTRY:-docker.io/your-org}/pipeline-doctor:${CIRCLE_TAG}
+                    docker push ${CIRCLE_REGISTRY:-docker.io/your-org}/pipeline-doctor:${CIRCLE_TAG}
+                  fi
+
+workflows:
+  ci:
+    jobs:
+      - lint
+      - test-311:
+          requires:
+            - lint
+      - test-312:
+          requires:
+            - lint
+      - build:
+          requires:
+            - test-311
+            - test-312
+          filters:
+            branches:
+              only: main
+      - docker:
+          requires:
+            - test-311
+            - test-312
+          filters:
+            branches:
+              only: main
+
+  release:
+    jobs:
+      - lint
+      - test-311:
+          requires:
+            - lint
+      - test-312:
+          requires:
+            - lint
+      - build:
+          requires:
+            - test-311
+            - test-312
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
+      - docker:
+          requires:
+            - test-311
+            - test-312
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/

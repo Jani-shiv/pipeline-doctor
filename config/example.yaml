@@ -1,0 +1,204 @@
+# Pipeline Doctor Configuration Example
+# Copy this to config/pipeline-doctor.yaml and customize
+
+# Application settings
+app_name: "pipeline-doctor"
+version: "0.1.0"
+debug: false
+log_level: "INFO"
+log_format: "json"
+
+# Platform configurations
+platforms:
+  github:
+    enabled: true
+    token: "${GITHUB_TOKEN}"
+    api_url: "https://api.github.com"
+    owner: "your-org"
+    repo: "your-repo"
+    verify_ssl: true
+    timeout: 30
+    rate_limit: 100
+
+  gitlab:
+    enabled: false
+    token: "${GITLAB_TOKEN}"
+    api_url: "https://gitlab.com/api/v4"
+    project_id: "your-project-id"
+    verify_ssl: true
+    timeout: 30
+    rate_limit: 100
+
+  jenkins:
+    enabled: false
+    url: "${JENKINS_URL}"
+    username: "${JENKINS_USER}"
+    token: "${JENKINS_TOKEN}"
+    job_name: "your-job-name"
+    verify_ssl: true
+    timeout: 30
+    rate_limit: 50
+
+  azure_devops:
+    enabled: false
+    token: "${AZURE_PAT}"
+    organization: "your-org"
+    project: "your-project"
+    api_url: "https://dev.azure.com"
+    verify_ssl: true
+    timeout: 30
+    rate_limit: 100
+
+  circleci:
+    enabled: false
+    token: "${CIRCLECI_TOKEN}"
+    project_slug: "gh/your-org/your-repo"
+    api_url: "https://circleci.com/api/v2"
+    verify_ssl: true
+    timeout: 30
+    rate_limit: 100
+
+# Analyzer configurations
+analyzers:
+  failure:
+    enabled: true
+    config:
+      patterns:
+        - "timeout"
+        - "out of memory"
+        - "permission denied"
+        - "connection refused"
+        - "disk full"
+        - "segmentation fault"
+        - "killed"
+        - "exit code 1"
+        - "exit code 137"
+        - "exit code 139"
+      custom_patterns: []
+
+  performance:
+    enabled: true
+    config:
+      thresholds:
+        pipeline_duration_warn: 1800
+        pipeline_duration_critical: 3600
+        job_duration_warn: 300
+        job_duration_critical: 600
+        step_duration_warn: 60
+        step_duration_critical: 180
+        queue_time_warn: 120
+        queue_time_critical: 300
+        waste_threshold_minutes: 10
+      compare_baseline: true
+      baseline_runs: 10
+
+  security:
+    enabled: true
+    config:
+      scan_secrets: true
+      scan_dependencies: true
+      scan_misconfigurations: true
+      secret_patterns:
+        - "(?i)(api[_-]?key|secret|password|token)\\s*[:=]\\s*['\"]?[a-zA-Z0-9_\\-]{20,}['\"]?"
+        - "(?i)(aws[_-]?access[_-]?key|aws[_-]?secret[_-]?key)\\s*[:=]\\s*['\"]?[A-Z0-9]{20,}['\"]?"
+        - "(?i)(github[_-]?token|gh[_-]?pat)\\s*[:=]\\s*['\"]?gh[ps]_[a-zA-Z0-9]{36}['\"]?"
+
+  cost:
+    enabled: true
+    config:
+      currency: "USD"
+      compute_cost_per_minute: 0.008
+      storage_cost_per_gb_month: 0.10
+      network_cost_per_gb: 0.09
+      track_waste: true
+      waste_threshold_minutes: 10
+
+  reliability:
+    enabled: true
+    config:
+      flaky_threshold: 0.1
+      min_runs_for_flaky: 10
+      check_retries: true
+      check_timeouts: true
+
+# Reporter configurations
+reporters:
+  html:
+    enabled: true
+    config:
+      template: "default"
+      include_charts: true
+      include_raw_data: false
+      theme: "light"
+    output_dir: "./reports"
+
+  json:
+    enabled: true
+    config:
+      pretty: true
+      include_metadata: true
+    output_dir: "./reports"
+
+  markdown:
+    enabled: true
+    config:
+      include_summary: true
+      include_details: true
+      table_format: "github"
+    output_dir: "./reports"
+
+  pdf:
+    enabled: true
+    config:
+      page_size: "A4"
+      margin: "2cm"
+      include_charts: true
+    output_dir: "./reports"
+
+# Default reporter
+default_reporter: "html"
+
+# Notification configurations
+notifications:
+  slack:
+    enabled: false
+    webhook_url: "${SLACK_WEBHOOK}"
+    channel: "#pipeline-alerts"
+    username: "Pipeline Doctor"
+    icon_emoji: ":stethoscope:"
+
+  email:
+    enabled: false
+    smtp_host: "smtp.gmail.com"
+    smtp_port: 587
+    smtp_username: "${EMAIL_USER}"
+    smtp_password: "${EMAIL_PASSWORD}"
+    from_email: "pipeline-doctor@example.com"
+    to_emails:
+      - "team@example.com"
+
+  pagerduty:
+    enabled: false
+    integration_key: "${PAGERDUTY_KEY}"
+
+  webhook:
+    enabled: false
+    webhook_url: "${WEBHOOK_URL}"
+
+# Storage configuration
+storage:
+  type: "sqlite"
+  path: "./data/pipeline-doctor.db"
+  host: "localhost"
+  port: 5432
+  database: "pipeline_doctor"
+  username: "postgres"
+  password: "${DB_PASSWORD}"
+  pool_size: 5
+  max_overflow: 10
+  echo: false
+
+# Analysis settings
+max_concurrent_analyzers: 5
+analysis_timeout: 300
+cache_ttl: 3600

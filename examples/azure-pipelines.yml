@@ -1,0 +1,126 @@
+trigger:
+  - main
+  - develop
+
+pr:
+  - main
+  - develop
+
+variables:
+  python.version: '3.11'
+  PIP_CACHE_DIR: $(Pipeline.Workspace)/.cache/pip
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+stages:
+  - stage: Lint
+    displayName: Lint & Format
+    jobs:
+      - job: Lint
+        displayName: Run Linter
+        steps:
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: $(python.version)
+          - task: Cache@2
+            inputs:
+              key: 'pip | "$(Agent.OS)" | requirements.txt'
+              restoreKeys: |
+                pip | "$(Agent.OS)"
+              path: $(PIP_CACHE_DIR)
+            displayName: Cache pip packages
+          - script: |
+              pip install -e ".[dev]"
+            displayName: Install dependencies
+          - script: |
+              ruff check src tests
+            displayName: Run ruff linter
+          - script: |
+              ruff format --check src tests
+            displayName: Check formatting
+
+  - stage: Test
+    displayName: Run Tests
+    dependsOn: Lint
+    jobs:
+      - job: Test311
+        displayName: Python 3.11
+        variables:
+          python.version: '3.11'
+        steps:
+          - template: steps/test.yml
+      - job: Test312
+        displayName: Python 3.12
+        variables:
+          python.version: '3.12'
+        steps:
+          - template: steps/test.yml
+
+  - stage: Build
+    displayName: Build Package
+    dependsOn: Test
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    jobs:
+      - job: Build
+        displayName: Build Distribution
+        steps:
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: $(python.version)
+          - script: |
+              pip install build twine
+            displayName: Install build tools
+          - script: |
+              python -m build
+            displayName: Build package
+          - script: |
+              twine check dist/*
+            displayName: Check package
+          - publish: $(Build.SourcesDirectory)/dist
+            artifact: dist
+
+  - stage: Docker
+    displayName: Build Docker Image
+    dependsOn: Test
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    jobs:
+      - job: Docker
+        displayName: Build & Push Docker
+        pool:
+          vmImage: 'ubuntu-latest'
+        steps:
+          - task: Docker@2
+            displayName: Build Docker image
+            inputs:
+              containerRegistry: 'docker-registry'
+              repository: 'pipeline-doctor'
+              command: 'buildAndPush'
+              Dockerfile: 'Dockerfile'
+              tags: |
+                $(Build.BuildNumber)
+                latest
+
+# Templates
+steps/test.yml:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: $(python.version)
+  - task: Cache@2
+    inputs:
+      key: 'pip | "$(Agent.OS)" | requirements.txt'
+      restoreKeys: |
+        pip | "$(Agent.OS)"
+      path: $(PIP_CACHE_DIR)
+    displayName: Cache pip packages
+  - script: |
+      pip install -e ".[dev]"
+    displayName: Install dependencies
+  - script: |
+      pytest --cov=pipeline_doctor --cov-report=xml --cov-report=term-missing
+    displayName: Run tests
+  - task: PublishCodeCoverageResults@1
+    inputs:
+      codeCoverageTool: 'cobertura'
+      summaryFileLocation: '$(Build.SourcesDirectory)/coverage.xml'
+    displayName: Publish coverage
