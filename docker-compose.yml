@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  pipeline-doctor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pipeline-doctor
+    environment:
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - GITLAB_TOKEN=${GITLAB_TOKEN}
+      - JENKINS_URL=${JENKINS_URL}
+      - JENKINS_USER=${JENKINS_USER}
+      - JENKINS_TOKEN=${JENKINS_TOKEN}
+      - AZURE_ORG=${AZURE_ORG}
+      - AZURE_PROJECT=${AZURE_PROJECT}
+      - AZURE_PAT=${AZURE_PAT}
+      - CIRCLECI_TOKEN=${CIRCLECI_TOKEN}
+      - CIRCLECI_PROJECT=${CIRCLECI_PROJECT}
+      - SLACK_WEBHOOK=${SLACK_WEBHOOK}
+      - PAGERDUTY_KEY=${PAGERDUTY_KEY}
+    volumes:
+      - ./reports:/app/reports
+      - ./data:/app/data
+      - ./config:/app/config
+    command: --help
+    restart: unless-stopped
+
+  # Optional: Run as a scheduled job
+  pipeline-doctor-scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pipeline-doctor-scheduler
+    environment:
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - GITLAB_TOKEN=${GITLAB_TOKEN}
+      - JENKINS_URL=${JENKINS_URL}
+      - JENKINS_USER=${JENKINS_USER}
+      - JENKINS_TOKEN=${JENKINS_TOKEN}
+      - AZURE_ORG=${AZURE_ORG}
+      - AZURE_PROJECT=${AZURE_PROJECT}
+      - AZURE_PAT=${AZURE_PAT}
+      - CIRCLECI_TOKEN=${CIRCLECI_TOKEN}
+      - CIRCLECI_PROJECT=${CIRCLECI_PROJECT}
+      - SLACK_WEBHOOK=${SLACK_WEBHOOK}
+      - PAGERDUTY_KEY=${PAGERDUTY_KEY}
+      - SCHEDULE_CRON=${SCHEDULE_CRON:-"0 */6 * * *"}  # Every 6 hours
+      - MONITOR_REPOS=${MONITOR_REPOS}  # Comma-separated list of repos to monitor
+    volumes:
+      - ./reports:/app/reports
+      - ./data:/app/data
+      - ./config:/app/config
+    command: >
+      sh -c "
+        echo 'Starting scheduled pipeline monitoring...'
+        while true; do
+          for repo in $${MONITOR_REPOS//,/ }; do
+            platform=$${repo%%/*}
+            repo_path=$${repo#*/}
+            pipeline_doctor report --platform $${platform} --repo $${repo_path} --days 1 --format html
+          done
+          sleep 3600
+        done
+      "
+    restart: unless-stopped
+    depends_on:
+      - pipeline-doctor
