@@ -1,9 +1,13 @@
 """Pipeline Doctor CLI - Main entry point."""
 
 import asyncio
-from datetime import UTC
+import logging
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from uuid import uuid4
 
+import httpx
+import structlog
 import typer
 from rich.console import Console
 from rich.panel import Panel
@@ -12,13 +16,22 @@ from rich.table import Table
 
 from pipeline_doctor.analyzers import get_available_analyzers
 from pipeline_doctor.analyzers import register_all as register_analyzers
+from pipeline_doctor.analyzers.base import AnalyzerRegistry
 from pipeline_doctor.core.config import PipelineDoctorConfig, load_config
-from pipeline_doctor.core.models import PipelinePlatform, PipelineStatus
-from pipeline_doctor.core.utils import setup_logging
+from pipeline_doctor.core.models import (
+    AnalysisReport,
+    PipelinePlatform,
+    PipelineRun,
+    PipelineStatus,
+)
+from pipeline_doctor.core.utils import load_yaml_file, setup_logging
 from pipeline_doctor.integrations import get_available_integrations
 from pipeline_doctor.integrations import register_all as register_integrations
+from pipeline_doctor.integrations.base import IntegrationRegistry
 from pipeline_doctor.reporters import get_available_reporters
 from pipeline_doctor.reporters import register_all as register_reporters
+from pipeline_doctor.reporters.base import ReporterRegistry
+from pipeline_doctor import __version__
 
 app = typer.Typer(
     name="pipeline-doctor",
@@ -36,7 +49,7 @@ def callback(
     config: Path | None = typer.Option(None, "--config", "-c", help="Configuration file path"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose output"),
     debug: bool = typer.Option(False, "--debug", help="Enable debug mode"),
-):
+) -> None:
     """Pipeline Doctor - CI/CD Pipeline Diagnostics & Health Monitoring"""
     # Register all components
     register_analyzers()
@@ -47,7 +60,7 @@ def callback(
     ctx.obj = load_config(str(config) if config else None)
 
     if verbose or debug:
-        import logging
+        logging.getLogger().setLevel(logging.DEBUG if debug else logging.INFO)
         logging.getLogger().setLevel(logging.DEBUG if debug else logging.INFO)
 
 
@@ -208,7 +221,6 @@ def report(
             runs = await integration.get_pipeline_runs(pipeline_id, limit=500)
 
             # Filter by date
-            from datetime import datetime, timedelta
             cutoff = datetime.now(UTC) - timedelta(days=days)
             runs = [r for r in runs if r.started_at and r.started_at >= cutoff]
 
@@ -453,9 +465,6 @@ async def analyze_runs(runs, config: PipelineDoctorConfig, analyzer_names: list[
 
 async def analyze_local_config(config_file: Path, platform: PipelinePlatform, config: PipelineDoctorConfig, analyzer_names: list[str] = None):
     """Analyze a local pipeline configuration file."""
-    from pipeline_doctor.core.models import PipelineRun
-    from pipeline_doctor.core.utils import load_yaml_file
-
     # Parse config file
     data = load_yaml_file(config_file)
 
@@ -480,9 +489,6 @@ async def analyze_local_config(config_file: Path, platform: PipelinePlatform, co
 
 def _parse_config_jobs(data: dict, platform: PipelinePlatform) -> list:
     """Parse jobs from pipeline config (simplified)."""
-    from uuid import uuid4
-
-    from pipeline_doctor.core.models import PipelineJob, PipelineStep
 
     jobs = []
 
@@ -531,8 +537,6 @@ def _parse_config_jobs(data: dict, platform: PipelinePlatform) -> list:
 
 async def send_webhook(webhook_url: str, report):
     """Send report summary to webhook."""
-    import httpx
-
     payload = {
         "report_id": str(report.id),
         "total_findings": report.total_findings,
@@ -591,29 +595,6 @@ def print_summary(report, console: Console):
                                  f"{finding.severity.value.upper()}[/]: {finding.title}")
     else:
         console.print("[green]No issues found![/green]")
-
-
-def setup_logging():
-    """Setup logging configuration."""
-    import structlog
-
-    structlog.configure(
-        processors=[
-            structlog.stdlib.filter_by_level,
-            structlog.stdlib.add_logger_name,
-            structlog.stdlib.add_log_level,
-            structlog.stdlib.PositionalArgumentsFormatter(),
-            structlog.processors.TimeStamper(fmt="iso"),
-            structlog.processors.StackInfoRenderer(),
-            structlog.processors.format_exc_info,
-            structlog.processors.UnicodeDecoder(),
-            structlog.processors.JSONRenderer(),
-        ],
-        context_class=dict,
-        logger_factory=structlog.stdlib.LoggerFactory(),
-        wrapper_class=structlog.stdlib.BoundLogger,
-        cache_logger_on_first_use=True,
-    )
 
 
 if __name__ == "__main__":

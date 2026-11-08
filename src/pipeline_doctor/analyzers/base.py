@@ -4,7 +4,13 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 from pipeline_doctor.core.exceptions import AnalyzerError
-from pipeline_doctor.core.models import AnalysisResult, Finding, PipelineRun
+from pipeline_doctor.core.models import (
+    AnalysisResult,
+    Finding,
+    FindingCategory,
+    FindingSeverity,
+    PipelineRun,
+)
 
 
 class BaseAnalyzer(ABC):
@@ -35,15 +41,16 @@ class BaseAnalyzer(ABC):
 
     def create_finding(
         self,
-        category: str,
-        severity: str,
+        category: FindingCategory,
+        severity: FindingSeverity,
         title: str,
         message: str,
-        suggestion: str = None,
-        affected_job: str = None,
-        affected_step: str = None,
-        evidence: dict[str, Any] = None,
-        references: list[str] = None,
+        *,
+        suggestion: str | None = None,
+        affected_job: str | None = None,
+        affected_step: str | None = None,
+        evidence: dict[str, Any] | None = None,
+        references: list[str] | None = None,
     ) -> Finding:
         """Helper to create a finding."""
         return Finding(

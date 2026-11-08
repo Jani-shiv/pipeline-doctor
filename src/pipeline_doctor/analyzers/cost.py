@@ -11,6 +11,11 @@ from pipeline_doctor.core.models import (
 )
 
 
+# Constants to avoid magic values
+MIN_SEQUENTIAL_JOBS_FOR_PARALLELIZATION = 2
+CACHE_THRESHOLD_SECONDS = 60
+
+
 @AnalyzerRegistry.register
 class CostAnalyzer(BaseAnalyzer):
     """Analyzes pipeline costs and identifies optimization opportunities."""
@@ -106,7 +111,7 @@ class CostAnalyzer(BaseAnalyzer):
             if not deps and job.duration_seconds:
                 sequential_jobs.append(job)
 
-        if len(sequential_jobs) > 2:
+        if len(sequential_jobs) > MIN_SEQUENTIAL_JOBS_FOR_PARALLELIZATION:
             total_time = sum(j.duration_seconds for j in sequential_jobs)
             max_time = max(j.duration_seconds for j in sequential_jobs)
             potential_savings = total_time - max_time
@@ -139,7 +144,7 @@ class CostAnalyzer(BaseAnalyzer):
                             cache_indicators = ["cache", "cached", "restore", "save"]
                             has_cache = any(ind in step.logs.lower() for ind in cache_indicators)
 
-                            if not has_cache and step.duration_seconds and step.duration_seconds > 60:
+                            if not has_cache and step.duration_seconds and step.duration_seconds > CACHE_THRESHOLD_SECONDS:
                                 result.add_finding(self.create_finding(
                                     category=FindingCategory.COST,
                                     severity=FindingSeverity.INFO,
