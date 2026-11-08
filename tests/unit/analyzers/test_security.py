@@ -85,7 +85,9 @@ class TestSecurityAnalyzer:
         result = await security_analyzer.analyze(secret_in_logs_run)
 
         assert result.has_findings
-        secret_findings = [f for f in result.findings if "api" in f.title.lower() or "key" in f.title.lower()]
+        secret_findings = [
+            f for f in result.findings if "api" in f.title.lower() or "key" in f.title.lower()
+        ]
         assert len(secret_findings) >= 1
         assert secret_findings[0].severity.value == "critical"
 
@@ -94,7 +96,9 @@ class TestSecurityAnalyzer:
         result = await security_analyzer.analyze(github_token_in_logs_run)
 
         assert result.has_findings
-        token_findings = [f for f in result.findings if "github" in f.title.lower() or "token" in f.title.lower()]
+        token_findings = [
+            f for f in result.findings if "github" in f.title.lower() or "token" in f.title.lower()
+        ]
         assert len(token_findings) >= 1
         assert token_findings[0].severity.value == "critical"
 
@@ -119,19 +123,27 @@ class TestSecurityAnalyzer:
         result = await security_analyzer.analyze(run)
 
         assert result.has_findings
-        misconfig_findings = [f for f in result.findings if "misconfiguration" in f.title.lower() or "privileged" in f.title.lower() or "root" in f.title.lower()]
+        misconfig_findings = [
+            f
+            for f in result.findings
+            if "misconfiguration" in f.title.lower()
+            or "privileged" in f.title.lower()
+            or "root" in f.title.lower()
+        ]
         assert len(misconfig_findings) >= 1
 
     @pytest.mark.asyncio
     async def test_custom_secret_patterns(self):
-        analyzer = SecurityAnalyzer(config={
-            "secret_patterns": [
-                {
-                    "pattern": "my_custom_secret_[a-zA-Z0-9]{20,}",
-                    "description": "Custom Secret",
-                }
-            ]
-        })
+        analyzer = SecurityAnalyzer(
+            config={
+                "secret_patterns": [
+                    {
+                        "pattern": "my_custom_secret_[a-zA-Z0-9]{20,}",
+                        "description": "Custom Secret",
+                    }
+                ]
+            }
+        )
 
         run = PipelineRun(
             id=uuid4(),

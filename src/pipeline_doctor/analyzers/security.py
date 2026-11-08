@@ -25,17 +25,29 @@ class SecurityAnalyzer(BaseAnalyzer):
         # Generic API keys
         (r"(?i)(api[_-]?key|apikey)\s*[:=]\s*['\"]?([a-zA-Z0-9_\-]{20,})['\"]?", "API Key"),
         # AWS
-        (r"(?i)(aws[_-]?access[_-]?key|aws[_-]?secret[_-]?key)\s*[:=]\s*['\"]?([A-Z0-9]{20,})['\"]?", "AWS Credentials"),
+        (
+            r"(?i)(aws[_-]?access[_-]?key|aws[_-]?secret[_-]?key)\s*[:=]\s*['\"]?([A-Z0-9]{20,})['\"]?",
+            "AWS Credentials",
+        ),
         # GitHub
-        (r"(?i)(github[_-]?token|gh[_-]?pat)\s*[:=]\s*['\"]?(gh[ps]_[a-zA-Z0-9]{36,40})['\"]?", "GitHub Token"),
+        (
+            r"(?i)(github[_-]?token|gh[_-]?pat)\s*[:=]\s*['\"]?(gh[ps]_[a-zA-Z0-9]{36,40})['\"]?",
+            "GitHub Token",
+        ),
         (r"(?i)(?:^|[^\w])(gh[ps]_[a-zA-Z0-9]{36,40})(?:$|[^\w])", "GitHub Token"),
         # GitLab
-        (r"(?i)(gitlab[_-]?token|glpat)\s*[:=]\s*['\"]?(glpat-[a-zA-Z0-9_\-]{20,})['\"]?", "GitLab Token"),
+        (
+            r"(?i)(gitlab[_-]?token|glpat)\s*[:=]\s*['\"]?(glpat-[a-zA-Z0-9_\-]{20,})['\"]?",
+            "GitLab Token",
+        ),
         (r"(?i)(?:^|[^\w])(glpat-[a-zA-Z0-9_\-]{20,})(?:$|[^\w])", "GitLab Token"),
         # Slack
         (r"(?i)(slack[_-]?token|xox[baprs]-[a-zA-Z0-9]{10,})", "Slack Token"),
         # Docker
-        (r"(?i)(docker[_-]?password|docker[_-]?auth)\s*[:=]\s*['\"]?([a-zA-Z0-9_\-]{10,})['\"]?", "Docker Credentials"),
+        (
+            r"(?i)(docker[_-]?password|docker[_-]?auth)\s*[:=]\s*['\"]?([a-zA-Z0-9_\-]{10,})['\"]?",
+            "Docker Credentials",
+        ),
         # NPM
         (r"(?i)(npm[_-]?token|_authToken)\s*[:=]\s*['\"]?([a-zA-Z0-9_\-]{20,})['\"]?", "NPM Token"),
         # Generic passwords
@@ -77,7 +89,9 @@ class SecurityAnalyzer(BaseAnalyzer):
             patterns.append((re.compile(pattern), desc))
         for custom in self.custom_secret_patterns:
             if isinstance(custom, dict) and "pattern" in custom:
-                patterns.append((re.compile(custom["pattern"]), custom.get("description", "Custom Secret")))
+                patterns.append(
+                    (re.compile(custom["pattern"]), custom.get("description", "Custom Secret"))
+                )
         return patterns
 
     async def analyze(self, run: PipelineRun) -> AnalysisResult:
@@ -122,27 +136,29 @@ class SecurityAnalyzer(BaseAnalyzer):
             if matches:
                 match = matches[0]
                 # Mask the secret in evidence
-                context = text[max(0, match.start()-50):match.end()+50]
+                context = text[max(0, match.start() - 50) : match.end() + 50]
                 try:
                     masked_text = pattern.sub(r"\1=***REDACTED***", context)
                 except re.error:
                     masked_text = context.replace(match.group(), "***REDACTED***")
 
-                result.add_finding(self.create_finding(
-                    category=FindingCategory.SECURITY,
-                    severity=FindingSeverity.CRITICAL,
-                    title=f"Potential secret detected: {desc}",
-                    message=f"Found potential {desc.lower()} in {'step ' + step_name if step_name != job_name else 'job'} '{job_name}'",
-                    suggestion="Remove secret from logs/configuration and rotate the credential",
-                    affected_job=job_name,
-                    affected_step=step_name if step_name != job_name else None,
-                    evidence={
-                        "type": desc,
-                        "context": masked_text,
-                        "match_count": len(matches),
-                    },
-                    references=["https://owasp.org/www-project-top-ten/"],
-                ))
+                result.add_finding(
+                    self.create_finding(
+                        category=FindingCategory.SECURITY,
+                        severity=FindingSeverity.CRITICAL,
+                        title=f"Potential secret detected: {desc}",
+                        message=f"Found potential {desc.lower()} in {'step ' + step_name if step_name != job_name else 'job'} '{job_name}'",
+                        suggestion="Remove secret from logs/configuration and rotate the credential",
+                        affected_job=job_name,
+                        affected_step=step_name if step_name != job_name else None,
+                        evidence={
+                            "type": desc,
+                            "context": masked_text,
+                            "match_count": len(matches),
+                        },
+                        references=["https://owasp.org/www-project-top-ten/"],
+                    )
+                )
 
     def _scan_misconfigurations(self, result: AnalysisResult, run: PipelineRun) -> None:
         """Scan for security misconfigurations."""
@@ -152,32 +168,36 @@ class SecurityAnalyzer(BaseAnalyzer):
             job_config = str(job.metadata)
             for pattern, desc in self._compiled_misconfig_patterns:
                 if pattern.search(job_config):
-                    result.add_finding(self.create_finding(
-                        category=FindingCategory.SECURITY,
-                        severity=FindingSeverity.WARNING,
-                        title=f"Security misconfiguration: {desc}",
-                        message=f"Job '{job.name}' has potential security misconfiguration",
-                        suggestion=f"Review {desc.lower()} setting",
-                        affected_job=job.name,
-                        evidence={"type": desc, "config_sample": job_config[:200]},
-                        references=["https://kubernetes.io/docs/concepts/security/"],
-                    ))
+                    result.add_finding(
+                        self.create_finding(
+                            category=FindingCategory.SECURITY,
+                            severity=FindingSeverity.WARNING,
+                            title=f"Security misconfiguration: {desc}",
+                            message=f"Job '{job.name}' has potential security misconfiguration",
+                            suggestion=f"Review {desc.lower()} setting",
+                            affected_job=job.name,
+                            evidence={"type": desc, "config_sample": job_config[:200]},
+                            references=["https://kubernetes.io/docs/concepts/security/"],
+                        )
+                    )
 
             # Check steps
             for step in job.steps:
                 step_config = str(step.metadata)
                 for pattern, desc in self._compiled_misconfig_patterns:
                     if pattern.search(step_config):
-                        result.add_finding(self.create_finding(
-                            category=FindingCategory.SECURITY,
-                            severity=FindingSeverity.WARNING,
-                            title=f"Security misconfiguration: {desc}",
-                            message=f"Step '{step.name}' in job '{job.name}' has potential security misconfiguration",
-                            suggestion=f"Review {desc.lower()} setting",
-                            affected_job=job.name,
-                            affected_step=step.name,
-                            evidence={"type": desc, "config_sample": step_config[:200]},
-                        ))
+                        result.add_finding(
+                            self.create_finding(
+                                category=FindingCategory.SECURITY,
+                                severity=FindingSeverity.WARNING,
+                                title=f"Security misconfiguration: {desc}",
+                                message=f"Step '{step.name}' in job '{job.name}' has potential security misconfiguration",
+                                suggestion=f"Review {desc.lower()} setting",
+                                affected_job=job.name,
+                                affected_step=step.name,
+                                evidence={"type": desc, "config_sample": step_config[:200]},
+                            )
+                        )
 
     def _scan_dependencies(self, result: AnalysisResult, run: PipelineRun) -> None:
         """Scan for vulnerable dependencies (placeholder for integration with vulnerability DBs)."""
@@ -195,24 +215,28 @@ class SecurityAnalyzer(BaseAnalyzer):
             (r"deprecated.*package", "Deprecated Package"),
         ]
 
-        compiled_indicators = [(re.compile(p, re.IGNORECASE), desc) for p, desc in vulnerability_indicators]
+        compiled_indicators = [
+            (re.compile(p, re.IGNORECASE), desc) for p, desc in vulnerability_indicators
+        ]
 
         for job in run.jobs:
             for step in job.steps:
                 if step.logs:
                     for pattern, desc in compiled_indicators:
                         if pattern.search(step.logs):
-                            result.add_finding(self.create_finding(
-                                category=FindingCategory.DEPENDENCY,
-                                severity=FindingSeverity.WARNING,
-                                title=f"Dependency issue: {desc}",
-                                message=f"Potential {desc.lower()} detected in step '{step.name}'",
-                                suggestion="Run dependency audit and update vulnerable packages",
-                                affected_job=job.name,
-                                affected_step=step.name,
-                                evidence={"type": desc},
-                                references=["https://owasp.org/www-project-dependency-check/"],
-                            ))
+                            result.add_finding(
+                                self.create_finding(
+                                    category=FindingCategory.DEPENDENCY,
+                                    severity=FindingSeverity.WARNING,
+                                    title=f"Dependency issue: {desc}",
+                                    message=f"Potential {desc.lower()} detected in step '{step.name}'",
+                                    suggestion="Run dependency audit and update vulnerable packages",
+                                    affected_job=job.name,
+                                    affected_step=step.name,
+                                    evidence={"type": desc},
+                                    references=["https://owasp.org/www-project-dependency-check/"],
+                                )
+                            )
 
     @classmethod
     def get_default_config(cls) -> dict[str, Any]:

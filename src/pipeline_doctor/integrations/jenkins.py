@@ -56,7 +56,9 @@ class JenkinsIntegration(BaseIntegration):
             response = await self._client.get(urljoin(self.url, "/api/json"))
             response.raise_for_status()
         except Exception as e:
-            raise AuthenticationError(f"Failed to connect to Jenkins: {e}", platform=self.platform.value)
+            raise AuthenticationError(
+                f"Failed to connect to Jenkins: {e}", platform=self.platform.value
+            )
 
     async def disconnect(self) -> None:
         """Close connection."""
@@ -95,10 +97,14 @@ class JenkinsIntegration(BaseIntegration):
     ) -> list[PipelineRun]:
         """Get build history."""
         job_url = self._get_job_url()
-        data = await self._make_request("GET", f"{job_url}api/json", params={"tree": "builds[number,result,timestamp,duration,url,building]"})
+        data = await self._make_request(
+            "GET",
+            f"{job_url}api/json",
+            params={"tree": "builds[number,result,timestamp,duration,url,building]"},
+        )
 
         runs = []
-        builds = data.get("builds", [])[offset:offset+limit]
+        builds = data.get("builds", [])[offset : offset + limit]
         for build_data in builds:
             run = self._parse_build(build_data)
             if status is None or run.status == status:
@@ -113,15 +119,21 @@ class JenkinsIntegration(BaseIntegration):
         return self._parse_build(data)
 
     @retry_with_backoff(max_attempts=3, exceptions=(httpx.RequestError,))
-    async def get_run_logs(self, pipeline_id: str, run_id: str, job_id: str = None) -> dict[str, Any]:
+    async def get_run_logs(
+        self, pipeline_id: str, run_id: str, job_id: str = None
+    ) -> dict[str, Any]:
         """Get build logs."""
         job_url = self._get_job_url()
-        response = await self._client.get(f"{job_url}{run_id}/logText/progressiveText", params={"start": 0})
+        response = await self._client.get(
+            f"{job_url}{run_id}/logText/progressiveText", params={"start": 0}
+        )
         response.raise_for_status()
         return {"logs": response.text}
 
     @retry_with_backoff(max_attempts=3, exceptions=(httpx.RequestError,))
-    async def trigger_pipeline(self, pipeline_id: str, params: dict[str, Any] = None) -> PipelineRun:
+    async def trigger_pipeline(
+        self, pipeline_id: str, params: dict[str, Any] = None
+    ) -> PipelineRun:
         """Trigger a new build."""
         job_url = self._get_job_url()
         trigger_url = f"{job_url}buildWithParameters" if params else f"{job_url}build"
@@ -154,6 +166,7 @@ class JenkinsIntegration(BaseIntegration):
         completed_at = None
         if started_at and duration_ms:
             from datetime import timedelta
+
             completed_at = started_at + timedelta(milliseconds=duration_ms)
 
         return PipelineRun(

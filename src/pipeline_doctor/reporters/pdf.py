@@ -25,6 +25,7 @@ class PDFReporter(BaseReporter):
         try:
             from weasyprint import CSS, HTML
             from weasyprint.text.fonts import FontConfiguration
+
             self._weasyprint_available = True
             self._HTML = HTML
             self._CSS = CSS
@@ -41,8 +42,7 @@ class PDFReporter(BaseReporter):
         """Generate PDF report."""
         if not self._weasyprint_available:
             raise RuntimeError(
-                "WeasyPrint is required for PDF generation. "
-                "Install with: pip install weasyprint"
+                "WeasyPrint is required for PDF generation. Install with: pip install weasyprint"
             )
 
         if output_path is None:

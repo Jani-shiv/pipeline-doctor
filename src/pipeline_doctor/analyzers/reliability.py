@@ -52,58 +52,66 @@ class ReliabilityAnalyzer(BaseAnalyzer):
             retry_count = job.metadata.get("retry_count", 0)
             if retry_count > 0:
                 severity = FindingSeverity.WARNING if retry_count == 1 else FindingSeverity.ERROR
-                result.add_finding(self.create_finding(
-                    category=FindingCategory.RELIABILITY,
-                    severity=severity,
-                    title=f"Job retried {retry_count} time(s)",
-                    message=f"Job '{job.name}' was retried {retry_count} time(s)",
-                    suggestion="Investigate root cause of intermittent failures",
-                    affected_job=job.name,
-                    evidence={"retry_count": retry_count},
-                ))
+                result.add_finding(
+                    self.create_finding(
+                        category=FindingCategory.RELIABILITY,
+                        severity=severity,
+                        title=f"Job retried {retry_count} time(s)",
+                        message=f"Job '{job.name}' was retried {retry_count} time(s)",
+                        suggestion="Investigate root cause of intermittent failures",
+                        affected_job=job.name,
+                        evidence={"retry_count": retry_count},
+                    )
+                )
 
             # Check steps for retries
             for step in job.steps:
                 step_retry = step.metadata.get("retry_count", 0)
                 if step_retry > 0:
                     severity = FindingSeverity.WARNING if step_retry == 1 else FindingSeverity.ERROR
-                    result.add_finding(self.create_finding(
-                        category=FindingCategory.RELIABILITY,
-                        severity=severity,
-                        title=f"Step retried {step_retry} time(s)",
-                        message=f"Step '{step.name}' in job '{job.name}' was retried {step_retry} time(s)",
-                        suggestion="Investigate root cause of intermittent step failures",
-                        affected_job=job.name,
-                        affected_step=step.name,
-                        evidence={"retry_count": step_retry},
-                    ))
+                    result.add_finding(
+                        self.create_finding(
+                            category=FindingCategory.RELIABILITY,
+                            severity=severity,
+                            title=f"Step retried {step_retry} time(s)",
+                            message=f"Step '{step.name}' in job '{job.name}' was retried {step_retry} time(s)",
+                            suggestion="Investigate root cause of intermittent step failures",
+                            affected_job=job.name,
+                            affected_step=step.name,
+                            evidence={"retry_count": step_retry},
+                        )
+                    )
 
     def _check_timeouts(self, result: AnalysisResult, run: PipelineRun) -> None:
         """Check for timeout-related failures."""
         for job in run.jobs:
             if job.status == PipelineStatus.TIMEOUT:
-                result.add_finding(self.create_finding(
-                    category=FindingCategory.RELIABILITY,
-                    severity=FindingSeverity.ERROR,
-                    title="Job timed out",
-                    message=f"Job '{job.name}' exceeded timeout limit",
-                    suggestion="Increase timeout or optimize job execution time",
-                    affected_job=job.name,
-                    evidence={"timeout": True, "duration_seconds": job.duration_seconds},
-                ))
+                result.add_finding(
+                    self.create_finding(
+                        category=FindingCategory.RELIABILITY,
+                        severity=FindingSeverity.ERROR,
+                        title="Job timed out",
+                        message=f"Job '{job.name}' exceeded timeout limit",
+                        suggestion="Increase timeout or optimize job execution time",
+                        affected_job=job.name,
+                        evidence={"timeout": True, "duration_seconds": job.duration_seconds},
+                    )
+                )
 
             for step in job.steps:
                 if step.status == PipelineStatus.TIMEOUT:
-                    result.add_finding(self.create_finding(
-                        category=FindingCategory.RELIABILITY,
-                        severity=FindingSeverity.ERROR,
-                        title="Step timed out",
-                        message=f"Step '{step.name}' in job '{job.name}' exceeded timeout limit",
-                        suggestion="Increase timeout or optimize step execution time",
-                        affected_job=job.name,
-                        affected_step=step.name,
-                        evidence={"timeout": True, "duration_seconds": step.duration_seconds},
-                    ))
+                    result.add_finding(
+                        self.create_finding(
+                            category=FindingCategory.RELIABILITY,
+                            severity=FindingSeverity.ERROR,
+                            title="Step timed out",
+                            message=f"Step '{step.name}' in job '{job.name}' exceeded timeout limit",
+                            suggestion="Increase timeout or optimize step execution time",
+                            affected_job=job.name,
+                            affected_step=step.name,
+                            evidence={"timeout": True, "duration_seconds": step.duration_seconds},
+                        )
+                    )
 
     def analyze_historical(self, runs: list[PipelineRun]) -> AnalysisResult:
         """Analyze multiple runs for flakiness patterns (requires historical data)."""
@@ -136,22 +144,27 @@ class ReliabilityAnalyzer(BaseAnalyzer):
 
                 # Check if failures are scattered (not all at the end)
                 if len(failure_indices) > 1:
-                    gaps = [failure_indices[i+1] - failure_indices[i] for i in range(len(failure_indices)-1)]
+                    gaps = [
+                        failure_indices[i + 1] - failure_indices[i]
+                        for i in range(len(failure_indices) - 1)
+                    ]
                     if any(g > 1 for g in gaps):  # Non-consecutive failures
-                        result.add_finding(self.create_finding(
-                            category=FindingCategory.RELIABILITY,
-                            severity=FindingSeverity.WARNING,
-                            title=f"Flaky job detected: {job_name}",
-                            message=f"Job '{job_name}' has {failure_rate*100:.1f}% failure rate over {total} runs (intermittent)",
-                            suggestion="Investigate and fix flaky job - check for race conditions, timing issues, or external dependencies",
-                            affected_job=job_name,
-                            evidence={
-                                "failure_rate": failure_rate,
-                                "total_runs": total,
-                                "failure_count": failures,
-                                "flaky_threshold": self.flaky_threshold,
-                            },
-                        ))
+                        result.add_finding(
+                            self.create_finding(
+                                category=FindingCategory.RELIABILITY,
+                                severity=FindingSeverity.WARNING,
+                                title=f"Flaky job detected: {job_name}",
+                                message=f"Job '{job_name}' has {failure_rate * 100:.1f}% failure rate over {total} runs (intermittent)",
+                                suggestion="Investigate and fix flaky job - check for race conditions, timing issues, or external dependencies",
+                                affected_job=job_name,
+                                evidence={
+                                    "failure_rate": failure_rate,
+                                    "total_runs": total,
+                                    "failure_count": failures,
+                                    "flaky_threshold": self.flaky_threshold,
+                                },
+                            )
+                        )
 
         return result
 

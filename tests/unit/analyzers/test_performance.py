@@ -116,7 +116,9 @@ class TestPerformanceAnalyzer:
         result = await performance_analyzer.analyze(slow_job_run)
 
         assert result.has_findings
-        job_findings = [f for f in result.findings if "job" in f.title.lower() and "slow" in f.title.lower()]
+        job_findings = [
+            f for f in result.findings if "job" in f.title.lower() and "slow" in f.title.lower()
+        ]
         assert len(job_findings) >= 1
         assert job_findings[0].affected_job == "slow-job"
 
@@ -131,12 +133,14 @@ class TestPerformanceAnalyzer:
 
     @pytest.mark.asyncio
     async def test_custom_thresholds(self):
-        analyzer = PerformanceAnalyzer(config={
-            "thresholds": {
-                "job_duration_warn": 100,
-                "job_duration_critical": 200,
+        analyzer = PerformanceAnalyzer(
+            config={
+                "thresholds": {
+                    "job_duration_warn": 100,
+                    "job_duration_critical": 200,
+                }
             }
-        })
+        )
 
         run = PipelineRun(
             id=uuid4(),

@@ -110,7 +110,9 @@ class GitLabIntegration(BaseIntegration):
         return self._parse_run(data)
 
     @retry_with_backoff(max_attempts=3, exceptions=(httpx.RequestError,))
-    async def get_run_logs(self, pipeline_id: str, run_id: str, job_id: str = None) -> dict[str, Any]:
+    async def get_run_logs(
+        self, pipeline_id: str, run_id: str, job_id: str = None
+    ) -> dict[str, Any]:
         """Get logs for a pipeline or job."""
         project_path = self._get_project_path()
 
@@ -130,7 +132,9 @@ class GitLabIntegration(BaseIntegration):
             return {"jobs": data}
 
     @retry_with_backoff(max_attempts=3, exceptions=(httpx.RequestError,))
-    async def trigger_pipeline(self, pipeline_id: str, params: dict[str, Any] = None) -> PipelineRun:
+    async def trigger_pipeline(
+        self, pipeline_id: str, params: dict[str, Any] = None
+    ) -> PipelineRun:
         """Trigger a new pipeline."""
         project_path = self._get_project_path()
         data = await self._make_request(

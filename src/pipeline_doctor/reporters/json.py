@@ -28,10 +28,7 @@ class JSONReporter(BaseReporter):
         data = self._prepare_data(report)
 
         indent = 2 if self.pretty else None
-        output_path.write_text(
-            json.dumps(data, indent=indent, default=str),
-            encoding="utf-8"
-        )
+        output_path.write_text(json.dumps(data, indent=indent, default=str), encoding="utf-8")
         return output_path
 
     def _prepare_data(self, report: AnalysisReport) -> dict[str, Any]:
@@ -61,8 +58,12 @@ class JSONReporter(BaseReporter):
             analyzer_data = {
                 "name": analyzer_result.analyzer_name,
                 "version": analyzer_result.analyzer_version,
-                "started_at": analyzer_result.started_at.isoformat() if analyzer_result.started_at else None,
-                "completed_at": analyzer_result.completed_at.isoformat() if analyzer_result.completed_at else None,
+                "started_at": analyzer_result.started_at.isoformat()
+                if analyzer_result.started_at
+                else None,
+                "completed_at": analyzer_result.completed_at.isoformat()
+                if analyzer_result.completed_at
+                else None,
                 "duration_seconds": analyzer_result.duration_seconds,
                 "findings": [],
                 "errors": analyzer_result.errors,
@@ -72,19 +73,23 @@ class JSONReporter(BaseReporter):
                 analyzer_data["metadata"] = analyzer_result.metadata
 
             for finding in analyzer_result.findings:
-                analyzer_data["findings"].append({
-                    "id": str(finding.id),
-                    "category": finding.category.value,
-                    "severity": finding.severity.value,
-                    "title": finding.title,
-                    "message": finding.message,
-                    "suggestion": finding.suggestion,
-                    "affected_job": finding.affected_job,
-                    "affected_step": finding.affected_step,
-                    "evidence": finding.evidence,
-                    "references": finding.references,
-                    "created_at": finding.created_at.isoformat() if finding.created_at else None,
-                })
+                analyzer_data["findings"].append(
+                    {
+                        "id": str(finding.id),
+                        "category": finding.category.value,
+                        "severity": finding.severity.value,
+                        "title": finding.title,
+                        "message": finding.message,
+                        "suggestion": finding.suggestion,
+                        "affected_job": finding.affected_job,
+                        "affected_step": finding.affected_step,
+                        "evidence": finding.evidence,
+                        "references": finding.references,
+                        "created_at": finding.created_at.isoformat()
+                        if finding.created_at
+                        else None,
+                    }
+                )
 
             data["analyzers"].append(analyzer_data)
 
@@ -106,48 +111,64 @@ class JSONLinesReporter(BaseReporter):
         lines = []
 
         # Report header
-        lines.append(json.dumps({
-            "type": "report_header",
-            "report_id": str(report.id),
-            "pipeline_id": str(report.pipeline_id),
-            "run_id": str(report.run_id),
-            "platform": report.platform,
-            "generated_at": report.started_at.isoformat() if report.started_at else None,
-        }))
+        lines.append(
+            json.dumps(
+                {
+                    "type": "report_header",
+                    "report_id": str(report.id),
+                    "pipeline_id": str(report.pipeline_id),
+                    "run_id": str(report.run_id),
+                    "platform": report.platform,
+                    "generated_at": report.started_at.isoformat() if report.started_at else None,
+                }
+            )
+        )
 
         # Analyzer results
         for analyzer_result in report.analyzer_results:
-            lines.append(json.dumps({
-                "type": "analyzer_result",
-                "analyzer": analyzer_result.analyzer_name,
-                "version": analyzer_result.analyzer_version,
-                "duration_seconds": analyzer_result.duration_seconds,
-                "errors": analyzer_result.errors,
-            }))
+            lines.append(
+                json.dumps(
+                    {
+                        "type": "analyzer_result",
+                        "analyzer": analyzer_result.analyzer_name,
+                        "version": analyzer_result.analyzer_version,
+                        "duration_seconds": analyzer_result.duration_seconds,
+                        "errors": analyzer_result.errors,
+                    }
+                )
+            )
 
             for finding in analyzer_result.findings:
-                lines.append(json.dumps({
-                    "type": "finding",
-                    "id": str(finding.id),
-                    "analyzer": analyzer_result.analyzer_name,
-                    "category": finding.category.value,
-                    "severity": finding.severity.value,
-                    "title": finding.title,
-                    "message": finding.message,
-                    "suggestion": finding.suggestion,
-                    "affected_job": finding.affected_job,
-                    "affected_step": finding.affected_step,
-                    "evidence": finding.evidence,
-                    "references": finding.references,
-                }))
+                lines.append(
+                    json.dumps(
+                        {
+                            "type": "finding",
+                            "id": str(finding.id),
+                            "analyzer": analyzer_result.analyzer_name,
+                            "category": finding.category.value,
+                            "severity": finding.severity.value,
+                            "title": finding.title,
+                            "message": finding.message,
+                            "suggestion": finding.suggestion,
+                            "affected_job": finding.affected_job,
+                            "affected_step": finding.affected_step,
+                            "evidence": finding.evidence,
+                            "references": finding.references,
+                        }
+                    )
+                )
 
         # Report footer
-        lines.append(json.dumps({
-            "type": "report_footer",
-            "total_findings": report.total_findings,
-            "by_severity": {k.value: v for k, v in report.findings_by_severity.items()},
-            "by_category": {k.value: v for k, v in report.findings_by_category.items()},
-        }))
+        lines.append(
+            json.dumps(
+                {
+                    "type": "report_footer",
+                    "total_findings": report.total_findings,
+                    "by_severity": {k.value: v for k, v in report.findings_by_severity.items()},
+                    "by_category": {k.value: v for k, v in report.findings_by_category.items()},
+                }
+            )
+        )
 
         output_path.write_text("\n".join(lines), encoding="utf-8")
         return output_path

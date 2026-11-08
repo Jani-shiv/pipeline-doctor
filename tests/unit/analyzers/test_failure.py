@@ -130,7 +130,9 @@ class TestFailureAnalyzer:
         result = await failure_analyzer.analyze(oom_run)
 
         assert result.has_findings
-        oom_findings = [f for f in result.findings if "memory" in f.title.lower() or "oom" in f.title.lower()]
+        oom_findings = [
+            f for f in result.findings if "memory" in f.title.lower() or "oom" in f.title.lower()
+        ]
         assert len(oom_findings) >= 1
         assert oom_findings[0].severity.value in ("error", "critical")
 
@@ -139,7 +141,11 @@ class TestFailureAnalyzer:
         result = await failure_analyzer.analyze(permission_run)
 
         assert result.has_findings
-        perm_findings = [f for f in result.findings if "permission" in f.title.lower() or "denied" in f.title.lower()]
+        perm_findings = [
+            f
+            for f in result.findings
+            if "permission" in f.title.lower() or "denied" in f.title.lower()
+        ]
         assert len(perm_findings) >= 1
 
     @pytest.mark.asyncio
@@ -168,16 +174,18 @@ class TestFailureAnalyzer:
 
     @pytest.mark.asyncio
     async def test_custom_patterns(self):
-        analyzer = FailureAnalyzer(config={
-            "custom_patterns": [
-                {
-                    "pattern": "custom_error_pattern",
-                    "severity": "warning",
-                    "suggestion": "Check custom error",
-                    "category": "custom",
-                }
-            ]
-        })
+        analyzer = FailureAnalyzer(
+            config={
+                "custom_patterns": [
+                    {
+                        "pattern": "custom_error_pattern",
+                        "severity": "warning",
+                        "suggestion": "Check custom error",
+                        "category": "custom",
+                    }
+                ]
+            }
+        )
 
         run = PipelineRun(
             id=uuid4(),

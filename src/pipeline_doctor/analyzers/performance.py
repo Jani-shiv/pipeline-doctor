@@ -57,25 +57,37 @@ class PerformanceAnalyzer(BaseAnalyzer):
         critical_threshold = self.thresholds.get("pipeline_duration_critical", 3600)  # 1 hour
 
         if run.duration_seconds >= critical_threshold:
-            result.add_finding(self.create_finding(
-                category=FindingCategory.PERFORMANCE,
-                severity=FindingSeverity.CRITICAL,
-                title="Pipeline duration critically high",
-                message=f"Pipeline took {run.duration_seconds:.0f}s (>{critical_threshold}s threshold)",
-                suggestion="Investigate parallelization opportunities and slow jobs",
-                evidence={"duration_seconds": run.duration_seconds, "threshold": critical_threshold},
-            ))
+            result.add_finding(
+                self.create_finding(
+                    category=FindingCategory.PERFORMANCE,
+                    severity=FindingSeverity.CRITICAL,
+                    title="Pipeline duration critically high",
+                    message=f"Pipeline took {run.duration_seconds:.0f}s (>{critical_threshold}s threshold)",
+                    suggestion="Investigate parallelization opportunities and slow jobs",
+                    evidence={
+                        "duration_seconds": run.duration_seconds,
+                        "threshold": critical_threshold,
+                    },
+                )
+            )
         elif run.duration_seconds >= warn_threshold:
-            result.add_finding(self.create_finding(
-                category=FindingCategory.PERFORMANCE,
-                severity=FindingSeverity.WARNING,
-                title="Pipeline duration above warning threshold",
-                message=f"Pipeline took {run.duration_seconds:.0f}s (>{warn_threshold}s threshold)",
-                suggestion="Consider optimizing slow jobs or increasing parallelism",
-                evidence={"duration_seconds": run.duration_seconds, "threshold": warn_threshold},
-            ))
+            result.add_finding(
+                self.create_finding(
+                    category=FindingCategory.PERFORMANCE,
+                    severity=FindingSeverity.WARNING,
+                    title="Pipeline duration above warning threshold",
+                    message=f"Pipeline took {run.duration_seconds:.0f}s (>{warn_threshold}s threshold)",
+                    suggestion="Consider optimizing slow jobs or increasing parallelism",
+                    evidence={
+                        "duration_seconds": run.duration_seconds,
+                        "threshold": warn_threshold,
+                    },
+                )
+            )
 
-    def _check_job_duration(self, result: AnalysisResult, job: PipelineRun, run: PipelineRun) -> None:
+    def _check_job_duration(
+        self, result: AnalysisResult, job: PipelineRun, run: PipelineRun
+    ) -> None:
         """Check individual job duration."""
         if not job.duration_seconds:
             return
@@ -84,38 +96,46 @@ class PerformanceAnalyzer(BaseAnalyzer):
         critical_threshold = self.thresholds.get("job_duration_critical", 600)  # 10 min
 
         # Calculate job percentage of total pipeline time
-        pct_of_total = (job.duration_seconds / run.duration_seconds * 100) if run.duration_seconds else 0
+        pct_of_total = (
+            (job.duration_seconds / run.duration_seconds * 100) if run.duration_seconds else 0
+        )
 
         if job.duration_seconds >= critical_threshold:
-            result.add_finding(self.create_finding(
-                category=FindingCategory.PERFORMANCE,
-                severity=FindingSeverity.CRITICAL,
-                title=f"Job '{job.name}' duration critically high",
-                message=f"Job took {job.duration_seconds:.0f}s (>{critical_threshold}s threshold, {pct_of_total:.1f}% of pipeline)",
-                suggestion="Split job into parallel stages or optimize slow steps",
-                affected_job=job.name,
-                evidence={
-                    "duration_seconds": job.duration_seconds,
-                    "threshold": critical_threshold,
-                    "pct_of_pipeline": pct_of_total,
-                },
-            ))
+            result.add_finding(
+                self.create_finding(
+                    category=FindingCategory.PERFORMANCE,
+                    severity=FindingSeverity.CRITICAL,
+                    title=f"Job '{job.name}' duration critically high",
+                    message=f"Job took {job.duration_seconds:.0f}s (>{critical_threshold}s threshold, {pct_of_total:.1f}% of pipeline)",
+                    suggestion="Split job into parallel stages or optimize slow steps",
+                    affected_job=job.name,
+                    evidence={
+                        "duration_seconds": job.duration_seconds,
+                        "threshold": critical_threshold,
+                        "pct_of_pipeline": pct_of_total,
+                    },
+                )
+            )
         elif job.duration_seconds >= warn_threshold:
-            result.add_finding(self.create_finding(
-                category=FindingCategory.PERFORMANCE,
-                severity=FindingSeverity.WARNING,
-                title=f"Job '{job.name}' duration above warning threshold",
-                message=f"Job took {job.duration_seconds:.0f}s (>{warn_threshold}s threshold, {pct_of_total:.1f}% of pipeline)",
-                suggestion="Review job steps for optimization opportunities",
-                affected_job=job.name,
-                evidence={
-                    "duration_seconds": job.duration_seconds,
-                    "threshold": warn_threshold,
-                    "pct_of_pipeline": pct_of_total,
-                },
-            ))
+            result.add_finding(
+                self.create_finding(
+                    category=FindingCategory.PERFORMANCE,
+                    severity=FindingSeverity.WARNING,
+                    title=f"Job '{job.name}' duration above warning threshold",
+                    message=f"Job took {job.duration_seconds:.0f}s (>{warn_threshold}s threshold, {pct_of_total:.1f}% of pipeline)",
+                    suggestion="Review job steps for optimization opportunities",
+                    affected_job=job.name,
+                    evidence={
+                        "duration_seconds": job.duration_seconds,
+                        "threshold": warn_threshold,
+                        "pct_of_pipeline": pct_of_total,
+                    },
+                )
+            )
 
-    def _check_step_duration(self, result: AnalysisResult, step: PipelineRun, job_name: str) -> None:
+    def _check_step_duration(
+        self, result: AnalysisResult, step: PipelineRun, job_name: str
+    ) -> None:
         """Check individual step duration."""
         if not step.duration_seconds:
             return
@@ -124,27 +144,37 @@ class PerformanceAnalyzer(BaseAnalyzer):
         critical_threshold = self.thresholds.get("step_duration_critical", 180)  # 3 min
 
         if step.duration_seconds >= critical_threshold:
-            result.add_finding(self.create_finding(
-                category=FindingCategory.PERFORMANCE,
-                severity=FindingSeverity.CRITICAL,
-                title=f"Step '{step.name}' duration critically high",
-                message=f"Step took {step.duration_seconds:.0f}s (>{critical_threshold}s threshold)",
-                suggestion="Optimize step logic or split into smaller steps",
-                affected_job=job_name,
-                affected_step=step.name,
-                evidence={"duration_seconds": step.duration_seconds, "threshold": critical_threshold},
-            ))
+            result.add_finding(
+                self.create_finding(
+                    category=FindingCategory.PERFORMANCE,
+                    severity=FindingSeverity.CRITICAL,
+                    title=f"Step '{step.name}' duration critically high",
+                    message=f"Step took {step.duration_seconds:.0f}s (>{critical_threshold}s threshold)",
+                    suggestion="Optimize step logic or split into smaller steps",
+                    affected_job=job_name,
+                    affected_step=step.name,
+                    evidence={
+                        "duration_seconds": step.duration_seconds,
+                        "threshold": critical_threshold,
+                    },
+                )
+            )
         elif step.duration_seconds >= warn_threshold:
-            result.add_finding(self.create_finding(
-                category=FindingCategory.PERFORMANCE,
-                severity=FindingSeverity.WARNING,
-                title=f"Step '{step.name}' duration above warning threshold",
-                message=f"Step took {step.duration_seconds:.0f}s (>{warn_threshold}s threshold)",
-                suggestion="Review step for optimization",
-                affected_job=job_name,
-                affected_step=step.name,
-                evidence={"duration_seconds": step.duration_seconds, "threshold": warn_threshold},
-            ))
+            result.add_finding(
+                self.create_finding(
+                    category=FindingCategory.PERFORMANCE,
+                    severity=FindingSeverity.WARNING,
+                    title=f"Step '{step.name}' duration above warning threshold",
+                    message=f"Step took {step.duration_seconds:.0f}s (>{warn_threshold}s threshold)",
+                    suggestion="Review step for optimization",
+                    affected_job=job_name,
+                    affected_step=step.name,
+                    evidence={
+                        "duration_seconds": step.duration_seconds,
+                        "threshold": warn_threshold,
+                    },
+                )
+            )
 
     def _check_queue_time(self, result: AnalysisResult, run: PipelineRun) -> None:
         """Check for excessive queue/wait time."""
@@ -160,23 +190,30 @@ class PerformanceAnalyzer(BaseAnalyzer):
             critical_threshold = self.thresholds.get("queue_time_critical", 300)  # 5 min
 
             if queue_time >= critical_threshold:
-                result.add_finding(self.create_finding(
-                    category=FindingCategory.PERFORMANCE,
-                    severity=FindingSeverity.CRITICAL,
-                    title="Excessive queue time before first job",
-                    message=f"First job started after {queue_time:.0f}s in queue",
-                    suggestion="Check runner availability and queue configuration",
-                    evidence={"queue_time_seconds": queue_time, "threshold": critical_threshold},
-                ))
+                result.add_finding(
+                    self.create_finding(
+                        category=FindingCategory.PERFORMANCE,
+                        severity=FindingSeverity.CRITICAL,
+                        title="Excessive queue time before first job",
+                        message=f"First job started after {queue_time:.0f}s in queue",
+                        suggestion="Check runner availability and queue configuration",
+                        evidence={
+                            "queue_time_seconds": queue_time,
+                            "threshold": critical_threshold,
+                        },
+                    )
+                )
             elif queue_time >= warn_threshold:
-                result.add_finding(self.create_finding(
-                    category=FindingCategory.PERFORMANCE,
-                    severity=FindingSeverity.WARNING,
-                    title="Queue time above warning threshold",
-                    message=f"First job started after {queue_time:.0f}s in queue",
-                    suggestion="Consider adding more runners or optimizing scheduling",
-                    evidence={"queue_time_seconds": queue_time, "threshold": warn_threshold},
-                ))
+                result.add_finding(
+                    self.create_finding(
+                        category=FindingCategory.PERFORMANCE,
+                        severity=FindingSeverity.WARNING,
+                        title="Queue time above warning threshold",
+                        message=f"First job started after {queue_time:.0f}s in queue",
+                        suggestion="Consider adding more runners or optimizing scheduling",
+                        evidence={"queue_time_seconds": queue_time, "threshold": warn_threshold},
+                    )
+                )
 
     def _check_resource_waste(self, result: AnalysisResult, run: PipelineRun) -> None:
         """Check for resource waste (cancelled/skipped jobs that ran long)."""
@@ -185,19 +222,21 @@ class PerformanceAnalyzer(BaseAnalyzer):
         for job in run.jobs:
             if job.status in ["cancelled", "skipped"] and job.duration_seconds:
                 if job.duration_seconds >= waste_threshold:
-                    result.add_finding(self.create_finding(
-                        category=FindingCategory.COST,
-                        severity=FindingSeverity.WARNING,
-                        title=f"Resource waste: {job.status} job ran for {job.duration_seconds:.0f}s",
-                        message=f"Job '{job.name}' was {job.status} after consuming resources",
-                        suggestion="Add early exit conditions or improve failure detection",
-                        affected_job=job.name,
-                        evidence={
-                            "duration_seconds": job.duration_seconds,
-                            "status": job.status,
-                            "waste_threshold": waste_threshold,
-                        },
-                    ))
+                    result.add_finding(
+                        self.create_finding(
+                            category=FindingCategory.COST,
+                            severity=FindingSeverity.WARNING,
+                            title=f"Resource waste: {job.status} job ran for {job.duration_seconds:.0f}s",
+                            message=f"Job '{job.name}' was {job.status} after consuming resources",
+                            suggestion="Add early exit conditions or improve failure detection",
+                            affected_job=job.name,
+                            evidence={
+                                "duration_seconds": job.duration_seconds,
+                                "status": job.status,
+                                "waste_threshold": waste_threshold,
+                            },
+                        )
+                    )
 
     @classmethod
     def get_default_config(cls) -> dict[str, Any]:

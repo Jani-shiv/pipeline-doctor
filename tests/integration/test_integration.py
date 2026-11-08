@@ -22,10 +22,7 @@ def test_integration_placeholder():
     assert True
 
 
-@pytest.mark.skipif(
-    not os.environ.get("GITHUB_TOKEN"),
-    reason="GITHUB_TOKEN not set"
-)
+@pytest.mark.skipif(not os.environ.get("GITHUB_TOKEN"), reason="GITHUB_TOKEN not set")
 async def test_github_integration():
     """Test GitHub Actions integration (requires GITHUB_TOKEN)."""
     # This would require a real token and repo
@@ -33,37 +30,25 @@ async def test_github_integration():
     assert GitHubIntegration is not None
 
 
-@pytest.mark.skipif(
-    not os.environ.get("GITLAB_TOKEN"),
-    reason="GITLAB_TOKEN not set"
-)
+@pytest.mark.skipif(not os.environ.get("GITLAB_TOKEN"), reason="GITLAB_TOKEN not set")
 async def test_gitlab_integration():
     """Test GitLab CI integration (requires GITLAB_TOKEN)."""
     assert GitLabIntegration is not None
 
 
-@pytest.mark.skipif(
-    not os.environ.get("JENKINS_URL"),
-    reason="JENKINS_URL not set"
-)
+@pytest.mark.skipif(not os.environ.get("JENKINS_URL"), reason="JENKINS_URL not set")
 async def test_jenkins_integration():
     """Test Jenkins integration (requires JENKINS_URL)."""
     assert JenkinsIntegration is not None
 
 
-@pytest.mark.skipif(
-    not os.environ.get("AZURE_PAT"),
-    reason="AZURE_PAT not set"
-)
+@pytest.mark.skipif(not os.environ.get("AZURE_PAT"), reason="AZURE_PAT not set")
 async def test_azure_integration():
     """Test Azure DevOps integration (requires AZURE_PAT)."""
     assert AzureDevOpsIntegration is not None
 
 
-@pytest.mark.skipif(
-    not os.environ.get("CIRCLECI_TOKEN"),
-    reason="CIRCLECI_TOKEN not set"
-)
+@pytest.mark.skipif(not os.environ.get("CIRCLECI_TOKEN"), reason="CIRCLECI_TOKEN not set")
 async def test_circleci_integration():
     """Test CircleCI integration (requires CIRCLECI_TOKEN)."""
     assert CircleCIIntegration is not None

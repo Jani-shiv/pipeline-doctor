@@ -59,7 +59,9 @@ class ReporterRegistry:
         return cls._reporters.get(name)
 
     @classmethod
-    def create(cls, name: str, config: dict[str, Any] = None, output_dir: str = "./reports") -> BaseReporter | None:
+    def create(
+        cls, name: str, config: dict[str, Any] = None, output_dir: str = "./reports"
+    ) -> BaseReporter | None:
         """Create reporter instance."""
         reporter_class = cls.get(name)
         if not reporter_class:

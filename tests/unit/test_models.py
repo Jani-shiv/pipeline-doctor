@@ -70,7 +70,7 @@ class TestPipelineModels:
 
         pipeline.runs = [run1, run2, run3]
 
-        assert pipeline.success_rate == 2/3
+        assert pipeline.success_rate == 2 / 3
 
     def test_run_duration_calculation(self):
         started = datetime.now(UTC)
@@ -175,29 +175,35 @@ class TestAnalysisModels:
         )
 
         result1 = AnalysisResult(analyzer_name="analyzer1")
-        result1.add_finding(Finding(
-            analyzer_name="analyzer1",
-            category=FindingCategory.FAILURE_PATTERN,
-            severity=FindingSeverity.ERROR,
-            title="Error 1",
-            message="Error message",
-        ))
+        result1.add_finding(
+            Finding(
+                analyzer_name="analyzer1",
+                category=FindingCategory.FAILURE_PATTERN,
+                severity=FindingSeverity.ERROR,
+                title="Error 1",
+                message="Error message",
+            )
+        )
 
         result2 = AnalysisResult(analyzer_name="analyzer2")
-        result2.add_finding(Finding(
-            analyzer_name="analyzer2",
-            category=FindingCategory.SECURITY,
-            severity=FindingSeverity.CRITICAL,
-            title="Critical 1",
-            message="Critical message",
-        ))
-        result2.add_finding(Finding(
-            analyzer_name="analyzer2",
-            category=FindingCategory.PERFORMANCE,
-            severity=FindingSeverity.WARNING,
-            title="Warning 1",
-            message="Warning message",
-        ))
+        result2.add_finding(
+            Finding(
+                analyzer_name="analyzer2",
+                category=FindingCategory.SECURITY,
+                severity=FindingSeverity.CRITICAL,
+                title="Critical 1",
+                message="Critical message",
+            )
+        )
+        result2.add_finding(
+            Finding(
+                analyzer_name="analyzer2",
+                category=FindingCategory.PERFORMANCE,
+                severity=FindingSeverity.WARNING,
+                title="Warning 1",
+                message="Warning message",
+            )
+        )
 
         report.add_analyzer_result(result1)
         report.add_analyzer_result(result2)

@@ -71,12 +71,16 @@ class BaseIntegration(ABC):
         pass
 
     @abstractmethod
-    async def get_run_logs(self, pipeline_id: str, run_id: str, job_id: str = None) -> dict[str, Any]:
+    async def get_run_logs(
+        self, pipeline_id: str, run_id: str, job_id: str = None
+    ) -> dict[str, Any]:
         """Get logs for a run or job."""
         pass
 
     @abstractmethod
-    async def trigger_pipeline(self, pipeline_id: str, params: dict[str, Any] = None) -> PipelineRun:
+    async def trigger_pipeline(
+        self, pipeline_id: str, params: dict[str, Any] = None
+    ) -> PipelineRun:
         """Trigger a new pipeline run."""
         pass
 
@@ -116,14 +120,20 @@ class BaseIntegration(ABC):
             return response.json()
         except Exception as e:
             # Handle specific error types
-            if hasattr(e, 'response') and e.response is not None:
+            if hasattr(e, "response") and e.response is not None:
                 status = e.response.status_code
                 if status == 401:
-                    raise AuthenticationError(f"Authentication failed: {e}", platform=self.platform.value)
+                    raise AuthenticationError(
+                        f"Authentication failed: {e}", platform=self.platform.value
+                    )
                 elif status == 403:
-                    raise AuthenticationError(f"Access forbidden: {e}", platform=self.platform.value)
+                    raise AuthenticationError(
+                        f"Access forbidden: {e}", platform=self.platform.value
+                    )
                 elif status == 404:
-                    raise PipelineNotFoundError(f"Resource not found: {e}", platform=self.platform.value)
+                    raise PipelineNotFoundError(
+                        f"Resource not found: {e}", platform=self.platform.value
+                    )
                 elif status == 429:
                     retry_after = int(e.response.headers.get("Retry-After", 60))
                     raise RateLimitError(

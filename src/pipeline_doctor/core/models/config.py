@@ -234,12 +234,11 @@ def load_config(config_path: str | None = None) -> PipelineDoctorConfig:
 
     if config_path:
         import yaml
+
         with open(config_path) as f:
             file_config = yaml.safe_load(f)
             if file_config:
-                config = PipelineDoctorConfig.model_validate(
-                    {**config.model_dump(), **file_config}
-                )
+                config = PipelineDoctorConfig.model_validate({**config.model_dump(), **file_config})
 
     # Merge defaults
     for name, analyzer in config.get_default_analyzers().items():

@@ -62,7 +62,9 @@ class AzureDevOpsIntegration(BaseIntegration):
     async def get_pipeline(self, pipeline_id: str) -> Pipeline:
         """Get pipeline by ID."""
         base_url = self._get_base_url()
-        data = await self._make_request("GET", f"{base_url}/pipelines/{pipeline_id}?api-version=7.1")
+        data = await self._make_request(
+            "GET", f"{base_url}/pipelines/{pipeline_id}?api-version=7.1"
+        )
 
         return Pipeline(
             id=uuid4(),
@@ -91,7 +93,9 @@ class AzureDevOpsIntegration(BaseIntegration):
         if status:
             params["resultFilter"] = self._status_to_azure(status)
 
-        data = await self._make_request("GET", f"{base_url}/pipelines/{pipeline_id}/runs", params=params)
+        data = await self._make_request(
+            "GET", f"{base_url}/pipelines/{pipeline_id}/runs", params=params
+        )
 
         runs = []
         for run_data in data.get("value", []):
@@ -102,11 +106,15 @@ class AzureDevOpsIntegration(BaseIntegration):
     async def get_run(self, pipeline_id: str, run_id: str) -> PipelineRun:
         """Get specific pipeline run."""
         base_url = self._get_base_url()
-        data = await self._make_request("GET", f"{base_url}/pipelines/{pipeline_id}/runs/{run_id}?api-version=7.1")
+        data = await self._make_request(
+            "GET", f"{base_url}/pipelines/{pipeline_id}/runs/{run_id}?api-version=7.1"
+        )
         return self._parse_run(data)
 
     @retry_with_backoff(max_attempts=3, exceptions=(httpx.RequestError,))
-    async def get_run_logs(self, pipeline_id: str, run_id: str, job_id: str = None) -> dict[str, Any]:
+    async def get_run_logs(
+        self, pipeline_id: str, run_id: str, job_id: str = None
+    ) -> dict[str, Any]:
         """Get logs for a run or job."""
         base_url = self._get_base_url()
 
@@ -126,7 +134,9 @@ class AzureDevOpsIntegration(BaseIntegration):
             return {"stages": data.get("stages", [])}
 
     @retry_with_backoff(max_attempts=3, exceptions=(httpx.RequestError,))
-    async def trigger_pipeline(self, pipeline_id: str, params: dict[str, Any] = None) -> PipelineRun:
+    async def trigger_pipeline(
+        self, pipeline_id: str, params: dict[str, Any] = None
+    ) -> PipelineRun:
         """Trigger a new pipeline run."""
         base_url = self._get_base_url()
         data = await self._make_request(
@@ -202,5 +212,9 @@ class AzureDevOpsIntegration(BaseIntegration):
                     if result_lower == "succeeded":
                         return PipelineStatus.SUCCESS
                     elif result_lower in ("failed", "canceled"):
-                        return PipelineStatus.FAILURE if result_lower == "failed" else PipelineStatus.CANCELLED
+                        return (
+                            PipelineStatus.FAILURE
+                            if result_lower == "failed"
+                            else PipelineStatus.CANCELLED
+                        )
         return PipelineStatus.UNKNOWN

@@ -115,7 +115,9 @@ class GitHubIntegration(BaseIntegration):
         return self._parse_run(data, pipeline_id=pipeline_id)
 
     @retry_with_backoff(max_attempts=3, exceptions=(httpx.RequestError,))
-    async def get_run_logs(self, pipeline_id: str, run_id: str, job_id: str = None) -> dict[str, Any]:
+    async def get_run_logs(
+        self, pipeline_id: str, run_id: str, job_id: str = None
+    ) -> dict[str, Any]:
         """Get logs for a run or job."""
         repo_path = self._get_repo_path()
 
@@ -136,7 +138,9 @@ class GitHubIntegration(BaseIntegration):
             return {"jobs": data.get("jobs", [])}
 
     @retry_with_backoff(max_attempts=3, exceptions=(httpx.RequestError,))
-    async def trigger_pipeline(self, pipeline_id: str, params: dict[str, Any] = None) -> PipelineRun:
+    async def trigger_pipeline(
+        self, pipeline_id: str, params: dict[str, Any] = None
+    ) -> PipelineRun:
         """Trigger a new workflow run."""
         repo_path = self._get_repo_path()
         await self._make_request(

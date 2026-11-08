@@ -92,7 +92,12 @@ class HTMLReporter(BaseReporter):
             "include_charts": self.include_charts,
             "include_raw_data": self.include_raw_data,
             "theme": self.theme,
-            "severity_order": [FindingSeverity.CRITICAL, FindingSeverity.ERROR, FindingSeverity.WARNING, FindingSeverity.INFO],
+            "severity_order": [
+                FindingSeverity.CRITICAL,
+                FindingSeverity.ERROR,
+                FindingSeverity.WARNING,
+                FindingSeverity.INFO,
+            ],
             "category_order": list(FindingCategory),
         }
 

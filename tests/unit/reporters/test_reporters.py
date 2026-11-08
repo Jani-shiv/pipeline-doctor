@@ -33,24 +33,28 @@ def sample_report():
     )
 
     result = AnalysisResult(analyzer_name="test-analyzer")
-    result.add_finding(Finding(
-        analyzer_name="test-analyzer",
-        category=FindingCategory.FAILURE_PATTERN,
-        severity=FindingSeverity.ERROR,
-        title="Test Error",
-        message="Test error message",
-        suggestion="Fix the error",
-        affected_job="test-job",
-        evidence={"key": "value"},
-    ))
-    result.add_finding(Finding(
-        analyzer_name="test-analyzer",
-        category=FindingCategory.PERFORMANCE,
-        severity=FindingSeverity.WARNING,
-        title="Slow Job",
-        message="Job took too long",
-        suggestion="Optimize job",
-    ))
+    result.add_finding(
+        Finding(
+            analyzer_name="test-analyzer",
+            category=FindingCategory.FAILURE_PATTERN,
+            severity=FindingSeverity.ERROR,
+            title="Test Error",
+            message="Test error message",
+            suggestion="Fix the error",
+            affected_job="test-job",
+            evidence={"key": "value"},
+        )
+    )
+    result.add_finding(
+        Finding(
+            analyzer_name="test-analyzer",
+            category=FindingCategory.PERFORMANCE,
+            severity=FindingSeverity.WARNING,
+            title="Slow Job",
+            message="Job took too long",
+            suggestion="Optimize job",
+        )
+    )
 
     report.add_analyzer_result(result)
     return report

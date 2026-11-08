@@ -17,6 +17,7 @@ __all__ = [
     "PDFReporter",
 ]
 
+
 # Ensure all reporters are registered
 def register_all() -> None:
     """Register all built-in reporters."""

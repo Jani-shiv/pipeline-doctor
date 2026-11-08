@@ -17,6 +17,7 @@ __all__ = [
     "CircleCIIntegration",
 ]
 
+
 # Ensure all integrations are registered
 def register_all() -> None:
     """Register all built-in integrations."""

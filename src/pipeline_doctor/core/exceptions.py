@@ -37,7 +37,9 @@ class AuthenticationError(PlatformError):
 class RateLimitError(PlatformError):
     """Rate limit exceeded."""
 
-    def __init__(self, message: str, platform: str = None, retry_after: int = None, details: dict = None):
+    def __init__(
+        self, message: str, platform: str = None, retry_after: int = None, details: dict = None
+    ):
         super().__init__(message, platform, details)
         self.code = "RATE_LIMIT_ERROR"
         self.retry_after = retry_after
@@ -46,7 +48,9 @@ class RateLimitError(PlatformError):
 class PipelineNotFoundError(PlatformError):
     """Pipeline not found."""
 
-    def __init__(self, message: str, platform: str = None, pipeline_id: str = None, details: dict = None):
+    def __init__(
+        self, message: str, platform: str = None, pipeline_id: str = None, details: dict = None
+    ):
         super().__init__(message, platform, details)
         self.code = "PIPELINE_NOT_FOUND"
         self.pipeline_id = pipeline_id
@@ -55,7 +59,9 @@ class PipelineNotFoundError(PlatformError):
 class RunNotFoundError(PlatformError):
     """Pipeline run not found."""
 
-    def __init__(self, message: str, platform: str = None, run_id: str = None, details: dict = None):
+    def __init__(
+        self, message: str, platform: str = None, run_id: str = None, details: dict = None
+    ):
         super().__init__(message, platform, details)
         self.code = "RUN_NOT_FOUND"
         self.run_id = run_id

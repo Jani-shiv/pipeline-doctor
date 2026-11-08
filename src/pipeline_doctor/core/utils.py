@@ -22,6 +22,7 @@ T = TypeVar("T")
 def generate_id(prefix: str = "") -> str:
     """Generate a unique ID with optional prefix."""
     import uuid
+
     timestamp = int(time.time() * 1000)
     random_part = uuid.uuid4().hex[:8]
     if prefix:
@@ -85,13 +86,21 @@ def sanitize_for_logging(data: Any, sensitive_keys: list[str] = None) -> Any:
     """Remove sensitive data from logs."""
     if sensitive_keys is None:
         sensitive_keys = [
-            "token", "password", "secret", "key", "auth",
-            "api_key", "access_token", "refresh_token",
+            "token",
+            "password",
+            "secret",
+            "key",
+            "auth",
+            "api_key",
+            "access_token",
+            "refresh_token",
         ]
 
     if isinstance(data, dict):
         return {
-            k: "***REDACTED***" if any(sk in k.lower() for sk in sensitive_keys) else sanitize_for_logging(v, sensitive_keys)
+            k: "***REDACTED***"
+            if any(sk in k.lower() for sk in sensitive_keys)
+            else sanitize_for_logging(v, sensitive_keys)
             for k, v in data.items()
         }
     elif isinstance(data, list):
@@ -126,6 +135,7 @@ def save_json_file(path: Path, data: dict[str, Any], indent: int = 2) -> None:
 def load_yaml_file(path: Path) -> dict[str, Any]:
     """Load YAML file with error handling."""
     import yaml
+
     try:
         with open(path, encoding="utf-8") as f:
             return yaml.safe_load(f)
@@ -140,6 +150,7 @@ def load_yaml_file(path: Path) -> dict[str, Any]:
 def save_yaml_file(path: Path, data: dict[str, Any]) -> None:
     """Save YAML file with error handling."""
     import yaml
+
     path.parent.mkdir(parents=True, exist_ok=True)
     try:
         with open(path, "w", encoding="utf-8") as f:
@@ -182,6 +193,7 @@ def retry_with_backoff(
     exceptions: tuple = (Exception,),
 ) -> Callable:
     """Decorator for retry with exponential backoff."""
+
     def decorator(func: Callable[..., T]) -> Callable[..., T]:
         @wraps(func)
         async def async_wrapper(*args: Any, **kwargs: Any) -> T:
@@ -193,7 +205,7 @@ def retry_with_backoff(
                     last_exception = e
                     if attempt == max_attempts - 1:
                         break
-                    delay = min(base_delay * (exponential_base ** attempt), max_delay)
+                    delay = min(base_delay * (exponential_base**attempt), max_delay)
                     logger.warning(
                         "retry_attempt",
                         function=func.__name__,
@@ -215,7 +227,7 @@ def retry_with_backoff(
                     last_exception = e
                     if attempt == max_attempts - 1:
                         break
-                    delay = min(base_delay * (exponential_base ** attempt), max_delay)
+                    delay = min(base_delay * (exponential_base**attempt), max_delay)
                     logger.warning(
                         "retry_attempt",
                         function=func.__name__,
@@ -289,7 +301,7 @@ class AsyncRateLimiter:
 
 def chunk_list(lst: list[T], chunk_size: int) -> list[list[T]]:
     """Split list into chunks of specified size."""
-    return [lst[i:i + chunk_size] for i in range(0, len(lst), chunk_size)]
+    return [lst[i : i + chunk_size] for i in range(0, len(lst), chunk_size)]
 
 
 def deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:

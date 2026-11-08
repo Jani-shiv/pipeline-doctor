@@ -19,11 +19,11 @@ from pipeline_doctor.analyzers import register_all as register_analyzers
 from pipeline_doctor.analyzers.base import AnalyzerRegistry
 from pipeline_doctor.core.config import PipelineDoctorConfig, load_config
 from pipeline_doctor.core.models import (
+    PipelineJob,
     PipelinePlatform,
     PipelineRun,
     PipelineStatus,
     PipelineStep,
-    PipelineJob,
 )
 from pipeline_doctor.core.utils import load_yaml_file
 from pipeline_doctor.integrations import get_available_integrations
@@ -66,13 +66,21 @@ def callback(
 def analyze(
     ctx: typer.Context,
     platform: PipelinePlatform = typer.Option(..., "--platform", "-p", help="CI/CD platform"),
-    repo: str | None = typer.Option(None, "--repo", "-r", help="Repository (owner/repo or project path)"),
+    repo: str | None = typer.Option(
+        None, "--repo", "-r", help="Repository (owner/repo or project path)"
+    ),
     pipeline_id: str | None = typer.Option(None, "--pipeline", help="Pipeline/workflow ID"),
     run_id: str | None = typer.Option(None, "--run", help="Specific run/build ID"),
-    config_file: Path | None = typer.Option(None, "--config-file", help="Local pipeline config file to analyze"),
-    analyzers: list[str] = typer.Option(None, "--analyzer", "-a", help="Analyzers to run (default: all)"),
+    config_file: Path | None = typer.Option(
+        None, "--config-file", help="Local pipeline config file to analyze"
+    ),
+    analyzers: list[str] = typer.Option(
+        None, "--analyzer", "-a", help="Analyzers to run (default: all)"
+    ),
     output: Path | None = typer.Option(None, "--output", "-o", help="Output file path"),
-    format: str = typer.Option("html", "--format", "-f", help="Output format (html, json, markdown, pdf, jsonl)"),
+    format: str = typer.Option(
+        "html", "--format", "-f", help="Output format (html, json, markdown, pdf, jsonl)"
+    ),
     days: int = typer.Option(30, "--days", "-d", help="Number of days of history to analyze"),
     limit: int = typer.Option(100, "--limit", "-l", help="Maximum number of runs to analyze"),
 ):
@@ -112,7 +120,9 @@ def analyze(
                 runs = await integration.get_pipeline_runs(pipeline_id, limit=limit)
                 report = await analyze_runs(runs, config, analyzers)
             else:
-                console.print("[red]Error:[/red] Must specify either --config-file or --repo with --pipeline (and optionally --run)")
+                console.print(
+                    "[red]Error:[/red] Must specify either --config-file or --repo with --pipeline (and optionally --run)"
+                )
                 raise typer.Exit(1)
 
             await integration.disconnect()
@@ -170,7 +180,9 @@ def monitor(
                         seen_runs.add(run.id)
 
                         if run.is_completed:
-                            console.print(f"\n[bold]New completed run:[/bold] #{run.number} - {run.status.value}")
+                            console.print(
+                                f"\n[bold]New completed run:[/bold] #{run.number} - {run.status.value}"
+                            )
                             report = await analyze_run(run, config, analyzers)
                             print_summary(report, console)
 
@@ -193,7 +205,9 @@ def report(
     repo: str = typer.Option(..., "--repo", "-r", help="Repository (owner/repo or project path)"),
     pipeline_id: str = typer.Option(..., "--pipeline", help="Pipeline/workflow ID"),
     days: int = typer.Option(30, "--days", "-d", help="Number of days of history"),
-    format: str = typer.Option("html", "--format", "-f", help="Output format (html, json, markdown, pdf)"),
+    format: str = typer.Option(
+        "html", "--format", "-f", help="Output format (html, json, markdown, pdf)"
+    ),
     output: Path | None = typer.Option(None, "--output", "-o", help="Output file path"),
     analyzers: list[str] = typer.Option(None, "--analyzer", "-a", help="Analyzers to include"),
 ):
@@ -241,8 +255,12 @@ def report(
 def scan(
     ctx: typer.Context,
     config_file: Path = typer.Argument(..., help="Pipeline configuration file to scan"),
-    platform: PipelinePlatform = typer.Option(PipelinePlatform.LOCAL, "--platform", "-p", help="Platform type"),
-    analyzers: list[str] = typer.Option(["security", "configuration"], "--analyzer", "-a", help="Analyzers to run"),
+    platform: PipelinePlatform = typer.Option(
+        PipelinePlatform.LOCAL, "--platform", "-p", help="Platform type"
+    ),
+    analyzers: list[str] = typer.Option(
+        ["security", "configuration"], "--analyzer", "-a", help="Analyzers to run"
+    ),
     format: str = typer.Option("markdown", "--format", "-f", help="Output format"),
     output: Path | None = typer.Option(None, "--output", "-o", help="Output file path"),
 ):
@@ -338,11 +356,14 @@ def version():
 
 # Helper functions
 
+
 def get_integration(platform: PipelinePlatform, config: PipelineDoctorConfig):
     """Get integration instance for platform."""
 
     platform_config = config.platforms.get(platform.value, {})
-    platform_config = platform_config.config if hasattr(platform_config, 'config') else platform_config
+    platform_config = (
+        platform_config.config if hasattr(platform_config, "config") else platform_config
+    )
 
     integration_class = IntegrationRegistry.get(platform.value)
     if not integration_class:
@@ -355,8 +376,14 @@ def get_reporter(format: str, config: PipelineDoctorConfig):
     """Get reporter instance for format."""
 
     reporter_config = config.reporters.get(format, {})
-    reporter_config = reporter_config.config if hasattr(reporter_config, 'config') else reporter_config
-    output_dir = reporter_config.get("output_dir", "./reports") if isinstance(reporter_config, dict) else "./reports"
+    reporter_config = (
+        reporter_config.config if hasattr(reporter_config, "config") else reporter_config
+    )
+    output_dir = (
+        reporter_config.get("output_dir", "./reports")
+        if isinstance(reporter_config, dict)
+        else "./reports"
+    )
 
     reporter_class = ReporterRegistry.get(format)
     if not reporter_class:
@@ -381,7 +408,11 @@ async def analyze_run(run, config: PipelineDoctorConfig, analyzer_names: list[st
             cls = AnalyzerRegistry.get(name)
             if cls:
                 analyzer_config = config.analyzers.get(name, {})
-                analyzer_config = analyzer_config.config if hasattr(analyzer_config, 'config') else analyzer_config
+                analyzer_config = (
+                    analyzer_config.config
+                    if hasattr(analyzer_config, "config")
+                    else analyzer_config
+                )
                 analyzers[name] = cls(analyzer_config)
     else:
         analyzers = {}
@@ -389,7 +420,11 @@ async def analyze_run(run, config: PipelineDoctorConfig, analyzer_names: list[st
             if analyzer_config.enabled:
                 cls = AnalyzerRegistry.get(name)
                 if cls:
-                    ac = analyzer_config.config if hasattr(analyzer_config, 'config') else analyzer_config
+                    ac = (
+                        analyzer_config.config
+                        if hasattr(analyzer_config, "config")
+                        else analyzer_config
+                    )
                     analyzers[name] = cls(ac)
 
     # Run analyzers
@@ -427,7 +462,11 @@ async def analyze_runs(runs, config: PipelineDoctorConfig, analyzer_names: list[
             cls = AnalyzerRegistry.get(name)
             if cls:
                 analyzer_config = config.analyzers.get(name, {})
-                analyzer_config = analyzer_config.config if hasattr(analyzer_config, 'config') else analyzer_config
+                analyzer_config = (
+                    analyzer_config.config
+                    if hasattr(analyzer_config, "config")
+                    else analyzer_config
+                )
                 analyzers[name] = cls(analyzer_config)
     else:
         analyzers = {}
@@ -435,7 +474,11 @@ async def analyze_runs(runs, config: PipelineDoctorConfig, analyzer_names: list[
             if analyzer_config.enabled:
                 cls = AnalyzerRegistry.get(name)
                 if cls:
-                    ac = analyzer_config.config if hasattr(analyzer_config, 'config') else analyzer_config
+                    ac = (
+                        analyzer_config.config
+                        if hasattr(analyzer_config, "config")
+                        else analyzer_config
+                    )
                     analyzers[name] = cls(ac)
 
     # Run analyzers on each run
@@ -452,7 +495,12 @@ async def analyze_runs(runs, config: PipelineDoctorConfig, analyzer_names: list[
     return report
 
 
-async def analyze_local_config(config_file: Path, platform: PipelinePlatform, config: PipelineDoctorConfig, analyzer_names: list[str] = None):
+async def analyze_local_config(
+    config_file: Path,
+    platform: PipelinePlatform,
+    config: PipelineDoctorConfig,
+    analyzer_names: list[str] = None,
+):
     """Analyze a local pipeline configuration file."""
     # Parse config file
     data = load_yaml_file(config_file)
@@ -486,19 +534,23 @@ def _parse_config_jobs(data: dict, platform: PipelinePlatform) -> list:
         for job_name, job_data in data.get("jobs", {}).items():
             steps = []
             for step in job_data.get("steps", []):
-                steps.append(PipelineStep(
+                steps.append(
+                    PipelineStep(
+                        id=uuid4(),
+                        name=step.get("name", step.get("uses", "unknown")),
+                        status=PipelineStatus.UNKNOWN,
+                        metadata={"github_step": step},
+                    )
+                )
+            jobs.append(
+                PipelineJob(
                     id=uuid4(),
-                    name=step.get("name", step.get("uses", "unknown")),
+                    name=job_name,
                     status=PipelineStatus.UNKNOWN,
-                    metadata={"github_step": step},
-                ))
-            jobs.append(PipelineJob(
-                id=uuid4(),
-                name=job_name,
-                status=PipelineStatus.UNKNOWN,
-                steps=steps,
-                metadata={"github_job": job_data},
-            ))
+                    steps=steps,
+                    metadata={"github_job": job_data},
+                )
+            )
     elif platform == PipelinePlatform.GITLAB:
         # GitLab CI format - stages and jobs
         for job_name, job_data in data.items():
@@ -507,19 +559,23 @@ def _parse_config_jobs(data: dict, platform: PipelinePlatform) -> list:
             if isinstance(job_data, dict) and ("script" in job_data or "stage" in job_data):
                 steps = []
                 for i, cmd in enumerate(job_data.get("script", [])):
-                    steps.append(PipelineStep(
+                    steps.append(
+                        PipelineStep(
+                            id=uuid4(),
+                            name=f"Step {i + 1}",
+                            status=PipelineStatus.UNKNOWN,
+                            metadata={"command": cmd},
+                        )
+                    )
+                jobs.append(
+                    PipelineJob(
                         id=uuid4(),
-                        name=f"Step {i+1}",
+                        name=job_name,
                         status=PipelineStatus.UNKNOWN,
-                        metadata={"command": cmd},
-                    ))
-                jobs.append(PipelineJob(
-                    id=uuid4(),
-                    name=job_name,
-                    status=PipelineStatus.UNKNOWN,
-                    steps=steps,
-                    metadata={"gitlab_job": job_data},
-                ))
+                        steps=steps,
+                        metadata={"gitlab_job": job_data},
+                    )
+                )
 
     return jobs
 
@@ -544,14 +600,16 @@ async def send_webhook(webhook_url: str, report):
 def print_summary(report, console: Console):
     """Print analysis summary to console."""
     console.print("\n" + "=" * 60)
-    console.print(Panel.fit(
-        f"[bold]Pipeline Doctor Analysis Summary[/bold]\n"
-        f"Pipeline: {report.pipeline_id}\n"
-        f"Platform: {report.platform}\n"
-        f"Total Findings: {report.total_findings}",
-        title="Summary",
-        border_style="blue",
-    ))
+    console.print(
+        Panel.fit(
+            f"[bold]Pipeline Doctor Analysis Summary[/bold]\n"
+            f"Pipeline: {report.pipeline_id}\n"
+            f"Platform: {report.platform}\n"
+            f"Total Findings: {report.total_findings}",
+            title="Summary",
+            border_style="blue",
+        )
+    )
 
     if report.total_findings > 0:
         table = Table(title="Findings by Severity")
@@ -580,8 +638,10 @@ def print_summary(report, console: Console):
         for analyzer_result in report.analyzer_results:
             for finding in analyzer_result.findings[:3]:
                 if finding.severity in ["critical", "error"]:
-                    console.print(f"  [{severity_colors.get(finding.severity.value, 'white')}]"
-                                 f"{finding.severity.value.upper()}[/]: {finding.title}")
+                    console.print(
+                        f"  [{severity_colors.get(finding.severity.value, 'white')}]"
+                        f"{finding.severity.value.upper()}[/]: {finding.title}"
+                    )
     else:
         console.print("[green]No issues found![/green]")
 

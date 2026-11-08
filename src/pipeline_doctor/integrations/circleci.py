@@ -75,7 +75,9 @@ class CircleCIIntegration(BaseIntegration):
         """Get pipeline runs (workflows)."""
         params = {"page-token": offset, "limit": min(limit, 100)}
 
-        data = await self._make_request("GET", f"{self.api_url}/project/{self.project_slug}/pipeline", params=params)
+        data = await self._make_request(
+            "GET", f"{self.api_url}/project/{self.project_slug}/pipeline", params=params
+        )
 
         runs = []
         for run_data in data.get("items", []):
@@ -91,7 +93,9 @@ class CircleCIIntegration(BaseIntegration):
         return self._parse_pipeline(data)
 
     @retry_with_backoff(max_attempts=3, exceptions=(httpx.RequestError,))
-    async def get_run_logs(self, pipeline_id: str, run_id: str, job_id: str = None) -> dict[str, Any]:
+    async def get_run_logs(
+        self, pipeline_id: str, run_id: str, job_id: str = None
+    ) -> dict[str, Any]:
         """Get logs for a pipeline or job."""
         if job_id:
             # Get job logs
@@ -105,12 +109,16 @@ class CircleCIIntegration(BaseIntegration):
             data = await self._make_request("GET", f"{self.api_url}/pipeline/{run_id}/workflow")
             workflow_id = data.get("id")
             if workflow_id:
-                jobs_data = await self._make_request("GET", f"{self.api_url}/workflow/{workflow_id}/job")
+                jobs_data = await self._make_request(
+                    "GET", f"{self.api_url}/workflow/{workflow_id}/job"
+                )
                 return {"jobs": jobs_data.get("items", [])}
             return {"jobs": []}
 
     @retry_with_backoff(max_attempts=3, exceptions=(httpx.RequestError,))
-    async def trigger_pipeline(self, pipeline_id: str, params: dict[str, Any] = None) -> PipelineRun:
+    async def trigger_pipeline(
+        self, pipeline_id: str, params: dict[str, Any] = None
+    ) -> PipelineRun:
         """Trigger a new pipeline."""
         data = await self._make_request(
             "POST",
