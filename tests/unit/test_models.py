@@ -17,6 +17,14 @@ from pipeline_doctor.core.models import (
     PipelineStep,
 )
 
+# Test constants
+EXPECTED_FAILED_STEPS = 2
+EXPECTED_TOTAL_FINDINGS = 3
+EXPECTED_CRITICAL_COUNT = 1
+EXPECTED_ERROR_COUNT = 1
+EXPECTED_WARNING_COUNT = 1
+EXPECTED_INFO_COUNT = 0
+
 
 class TestPipelineModels:
     """Tests for pipeline domain models."""
@@ -94,7 +102,7 @@ class TestPipelineModels:
         )
 
         failed = job.failed_steps
-        assert len(failed) == 2
+        assert len(failed) == EXPECTED_FAILED_STEPS
         assert all(s.status == PipelineStatus.FAILURE for s in failed)
 
 
@@ -154,10 +162,10 @@ class TestAnalysisModels:
         result.add_finding(finding2)
 
         assert result.has_findings
-        assert len(result.critical_findings) == 1
-        assert len(result.warning_findings) == 1
+        assert len(result.critical_findings) == EXPECTED_CRITICAL_COUNT
+        assert len(result.warning_findings) == EXPECTED_WARNING_COUNT
         assert len(result.error_findings) == 0
-        assert len(result.info_findings) == 0
+        assert len(result.info_findings) == EXPECTED_INFO_COUNT
 
     def test_analysis_report_aggregation(self):
         report = AnalysisReport(
@@ -194,10 +202,10 @@ class TestAnalysisModels:
         report.add_analyzer_result(result1)
         report.add_analyzer_result(result2)
 
-        assert report.total_findings == 3
-        assert report.findings_by_severity[FindingSeverity.CRITICAL] == 1
-        assert report.findings_by_severity[FindingSeverity.ERROR] == 1
-        assert report.findings_by_severity[FindingSeverity.WARNING] == 1
-        assert report.findings_by_severity[FindingSeverity.INFO] == 0
+        assert report.total_findings == EXPECTED_TOTAL_FINDINGS
+        assert report.findings_by_severity[FindingSeverity.CRITICAL] == EXPECTED_CRITICAL_COUNT
+        assert report.findings_by_severity[FindingSeverity.ERROR] == EXPECTED_ERROR_COUNT
+        assert report.findings_by_severity[FindingSeverity.WARNING] == EXPECTED_WARNING_COUNT
+        assert report.findings_by_severity[FindingSeverity.INFO] == EXPECTED_INFO_COUNT
         assert report.has_critical_findings
         assert not report.has_errors  # No analyzer errors

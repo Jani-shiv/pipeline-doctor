@@ -1,5 +1,6 @@
 """Tests for core utilities."""
 
+import time
 from datetime import UTC, datetime
 
 import pytest
@@ -21,6 +22,35 @@ from pipeline_doctor.core.utils import (
     truncate,
     validate_uuid,
 )
+
+# Test constants
+EXPECTED_CHUNKS = 4
+EXPECTED_CALLS = 3
+EXPECTED_ITEMS = 10
+EXPECTED_CHUNK_SIZE = 3
+EXPECTED_MERGED_C = 20
+EXPECTED_MERGED_D = 3
+EXPECTED_MERGED_E = 4
+EXPECTED_MERGED_A = 1
+EXPECTED_FIRST_CHUNK = [0, 1, 2]
+EXPECTED_SECOND_CHUNK = [3, 4, 5]
+EXPECTED_THIRD_CHUNK = [6, 7, 8]
+EXPECTED_FOURTH_CHUNK = [9]
+EXPECTED_SECONDS_30 = 30
+EXPECTED_SECONDS_5M = 300
+EXPECTED_SECONDS_1H = 3600
+EXPECTED_SECONDS_1H30M = 5400
+EXPECTED_SECONDS_2H15M30S = 8130
+EXPECTED_FORMAT_30S = "30.0s"
+EXPECTED_FORMAT_90S = "1.5m"
+EXPECTED_FORMAT_3600S = "1.0h"
+EXPECTED_FORMAT_7200S = "2.0h"
+EXPECTED_BYTES_500 = "500.0B"
+EXPECTED_BYTES_1KB = "1.0KB"
+EXPECTED_BYTES_1MB = "1.0MB"
+EXPECTED_BYTES_1GB = "1.0GB"
+EXPECTED_THROTTLE_WAIT = 0.15
+MAX_ATTEMPTS = 3
 
 
 class TestStringUtils:
@@ -49,27 +79,27 @@ class TestStringUtils:
         assert truncate("exactly10", 8) == "exact..."
 
     def test_parse_duration(self):
-        assert parse_duration("30s") == 30
-        assert parse_duration("5m") == 300
-        assert parse_duration("1h") == 3600
-        assert parse_duration("1h30m") == 5400
-        assert parse_duration("2h15m30s") == 8130
+        assert parse_duration("30s") == EXPECTED_SECONDS_30
+        assert parse_duration("5m") == EXPECTED_SECONDS_5M
+        assert parse_duration("1h") == EXPECTED_SECONDS_1H
+        assert parse_duration("1h30m") == EXPECTED_SECONDS_1H30M
+        assert parse_duration("2h15m30s") == EXPECTED_SECONDS_2H15M30S
 
     def test_parse_duration_invalid(self):
         with pytest.raises(ValueError):
             parse_duration("invalid")
 
     def test_format_duration(self):
-        assert format_duration(30) == "30.0s"
-        assert format_duration(90) == "1.5m"
-        assert format_duration(3600) == "1.0h"
-        assert format_duration(7200) == "2.0h"
+        assert format_duration(30) == EXPECTED_FORMAT_30S
+        assert format_duration(90) == EXPECTED_FORMAT_90S
+        assert format_duration(3600) == EXPECTED_FORMAT_3600S
+        assert format_duration(7200) == EXPECTED_FORMAT_7200S
 
     def test_format_bytes(self):
-        assert format_bytes(500) == "500.0B"
-        assert format_bytes(1024) == "1.0KB"
-        assert format_bytes(1024 * 1024) == "1.0MB"
-        assert format_bytes(1024 * 1024 * 1024) == "1.0GB"
+        assert format_bytes(500) == EXPECTED_BYTES_500
+        assert format_bytes(1024) == EXPECTED_BYTES_1KB
+        assert format_bytes(1024 * 1024) == EXPECTED_BYTES_1MB
+        assert format_bytes(1024 * 1024 * 1024) == EXPECTED_BYTES_1GB
 
 
 class TestSanitization:
@@ -104,14 +134,14 @@ class TestCollectionUtils:
     """Tests for collection utilities."""
 
     def test_chunk_list(self):
-        items = list(range(10))
-        chunks = chunk_list(items, 3)
+        items = list(range(EXPECTED_ITEMS))
+        chunks = chunk_list(items, EXPECTED_CHUNK_SIZE)
 
-        assert len(chunks) == 4
-        assert chunks[0] == [0, 1, 2]
-        assert chunks[1] == [3, 4, 5]
-        assert chunks[2] == [6, 7, 8]
-        assert chunks[3] == [9]
+        assert len(chunks) == EXPECTED_CHUNKS
+        assert chunks[0] == EXPECTED_FIRST_CHUNK
+        assert chunks[1] == EXPECTED_SECOND_CHUNK
+        assert chunks[2] == EXPECTED_THIRD_CHUNK
+        assert chunks[3] == EXPECTED_FOURTH_CHUNK
 
     def test_deep_merge(self):
         base = {"a": 1, "b": {"c": 2, "d": 3}}
@@ -119,10 +149,10 @@ class TestCollectionUtils:
 
         merged = deep_merge(base, override)
 
-        assert merged["a"] == 1
-        assert merged["b"]["c"] == 20
-        assert merged["b"]["d"] == 3
-        assert merged["e"] == 4
+        assert merged["a"] == EXPECTED_MERGED_A
+        assert merged["b"]["c"] == EXPECTED_MERGED_C
+        assert merged["b"]["d"] == EXPECTED_MERGED_D
+        assert merged["e"] == EXPECTED_MERGED_E
 
     def test_deep_merge_lists(self):
         base = {"items": [1, 2]}
@@ -183,13 +213,12 @@ class TestAsyncRateLimiter:
             await limiter.acquire()
 
         # Next should wait
-        import time
         start = time.time()
         await limiter.acquire()
         elapsed = time.time() - start
 
         # Should have waited approximately 0.2 seconds
-        assert elapsed >= 0.15
+        assert elapsed >= EXPECTED_THROTTLE_WAIT
 
 
 class TestRetryDecorator:
@@ -199,23 +228,23 @@ class TestRetryDecorator:
     async def test_retry_succeeds_eventually(self):
         call_count = 0
 
-        @retry_with_backoff(max_attempts=3, base_delay=0.01)
+        @retry_with_backoff(max_attempts=MAX_ATTEMPTS, base_delay=0.01)
         async def flaky_function():
             nonlocal call_count
             call_count += 1
-            if call_count < 3:
+            if call_count < MAX_ATTEMPTS:
                 raise ValueError("Temporary error")
             return "success"
 
         result = await flaky_function()
         assert result == "success"
-        assert call_count == 3
+        assert call_count == MAX_ATTEMPTS
 
     @pytest.mark.asyncio
     async def test_retry_exhausts_attempts(self):
         call_count = 0
 
-        @retry_with_backoff(max_attempts=3, base_delay=0.01)
+        @retry_with_backoff(max_attempts=MAX_ATTEMPTS, base_delay=0.01)
         async def always_fails():
             nonlocal call_count
             call_count += 1
@@ -223,4 +252,4 @@ class TestRetryDecorator:
 
         with pytest.raises(ValueError):
             await always_fails()
-        assert call_count == 3
+        assert call_count == MAX_ATTEMPTS

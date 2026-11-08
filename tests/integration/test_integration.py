@@ -5,8 +5,14 @@ and are skipped unless the appropriate environment variables are set.
 """
 
 import os
+
 import pytest
 
+from pipeline_doctor.integrations.azure import AzureDevOpsIntegration
+from pipeline_doctor.integrations.circleci import CircleCIIntegration
+from pipeline_doctor.integrations.github import GitHubIntegration
+from pipeline_doctor.integrations.gitlab import GitLabIntegration
+from pipeline_doctor.integrations.jenkins import JenkinsIntegration
 
 pytestmark = pytest.mark.integration
 
@@ -22,8 +28,6 @@ def test_integration_placeholder():
 )
 async def test_github_integration():
     """Test GitHub Actions integration (requires GITHUB_TOKEN)."""
-    from pipeline_doctor.integrations.github import GitHubIntegration
-    
     # This would require a real token and repo
     # For now, just verify the import works
     assert GitHubIntegration is not None
@@ -35,8 +39,6 @@ async def test_github_integration():
 )
 async def test_gitlab_integration():
     """Test GitLab CI integration (requires GITLAB_TOKEN)."""
-    from pipeline_doctor.integrations.gitlab import GitLabIntegration
-    
     assert GitLabIntegration is not None
 
 
@@ -46,8 +48,6 @@ async def test_gitlab_integration():
 )
 async def test_jenkins_integration():
     """Test Jenkins integration (requires JENKINS_URL)."""
-    from pipeline_doctor.integrations.jenkins import JenkinsIntegration
-    
     assert JenkinsIntegration is not None
 
 
@@ -57,8 +57,6 @@ async def test_jenkins_integration():
 )
 async def test_azure_integration():
     """Test Azure DevOps integration (requires AZURE_PAT)."""
-    from pipeline_doctor.integrations.azure import AzureDevOpsIntegration
-    
     assert AzureDevOpsIntegration is not None
 
 
@@ -68,6 +66,4 @@ async def test_azure_integration():
 )
 async def test_circleci_integration():
     """Test CircleCI integration (requires CIRCLECI_TOKEN)."""
-    from pipeline_doctor.integrations.circleci import CircleCIIntegration
-    
     assert CircleCIIntegration is not None

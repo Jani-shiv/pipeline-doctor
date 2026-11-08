@@ -1,5 +1,6 @@
 """Tests for reporters."""
 
+import json
 from datetime import UTC, datetime
 from uuid import uuid4
 
@@ -13,7 +14,12 @@ from pipeline_doctor.core.models import (
     FindingSeverity,
 )
 from pipeline_doctor.reporters.json import JSONReporter
-from pipeline_doctor.reporters.markdown import MarkdownReporter
+from pipeline_doctor.reporters.markdown import GitHubMarkdownReporter, MarkdownReporter
+
+# Test constants
+EXPECTED_TOTAL_FINDINGS = 2
+EXPECTED_ANALYZERS = 1
+EXPECTED_FINDINGS_PER_ANALYZER = 2
 
 
 @pytest.fixture
@@ -61,24 +67,22 @@ class TestJSONReporter:
         assert output_path.exists()
         assert output_path.suffix == ".json"
 
-        import json
-        with open(output_path) as f:
+        with output_path.open() as f:
             data = json.load(f)
 
         assert data["report_id"] == str(sample_report.id)
         assert data["platform"] == "github"
-        assert data["summary"]["total_findings"] == 2
-        assert len(data["analyzers"]) == 1
+        assert data["summary"]["total_findings"] == EXPECTED_TOTAL_FINDINGS
+        assert len(data["analyzers"]) == EXPECTED_ANALYZERS
         assert data["analyzers"][0]["name"] == "test-analyzer"
-        assert len(data["analyzers"][0]["findings"]) == 2
+        assert len(data["analyzers"][0]["findings"]) == EXPECTED_FINDINGS_PER_ANALYZER
 
     @pytest.mark.asyncio
     async def test_generates_compact_json(self, sample_report, tmp_path):
         reporter = JSONReporter(config={"pretty": False}, output_dir=str(tmp_path))
         output_path = await reporter.generate(sample_report)
 
-        with open(output_path) as f:
-            content = f.read()
+        content = output_path.read_text()
 
         # Compact JSON should not have newlines (except possibly at end)
         assert content.count("\n") <= 1
@@ -105,8 +109,6 @@ class TestMarkdownReporter:
 
     @pytest.mark.asyncio
     async def test_generates_github_markdown(self, sample_report, tmp_path):
-        from pipeline_doctor.reporters.markdown import GitHubMarkdownReporter
-
         reporter = GitHubMarkdownReporter(config={"max_findings": 10}, output_dir=str(tmp_path))
         output_path = await reporter.generate(sample_report)
 
