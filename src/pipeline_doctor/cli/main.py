@@ -7,31 +7,29 @@ from pathlib import Path
 from uuid import uuid4
 
 import httpx
-import structlog
 import typer
 from rich.console import Console
 from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 
+from pipeline_doctor import __version__
 from pipeline_doctor.analyzers import get_available_analyzers
 from pipeline_doctor.analyzers import register_all as register_analyzers
 from pipeline_doctor.analyzers.base import AnalyzerRegistry
 from pipeline_doctor.core.config import PipelineDoctorConfig, load_config
 from pipeline_doctor.core.models import (
-    AnalysisReport,
     PipelinePlatform,
     PipelineRun,
     PipelineStatus,
+    PipelineStep,
+    PipelineJob,
 )
-from pipeline_doctor.core.utils import load_yaml_file, setup_logging
+from pipeline_doctor.core.utils import load_yaml_file
 from pipeline_doctor.integrations import get_available_integrations
 from pipeline_doctor.integrations import register_all as register_integrations
-from pipeline_doctor.integrations.base import IntegrationRegistry
 from pipeline_doctor.reporters import get_available_reporters
 from pipeline_doctor.reporters import register_all as register_reporters
-from pipeline_doctor.reporters.base import ReporterRegistry
-from pipeline_doctor import __version__
 
 app = typer.Typer(
     name="pipeline-doctor",
@@ -283,7 +281,6 @@ def list_analyzers():
 
     for name in sorted(analyzers):
         # Get description from registry
-        from pipeline_doctor.analyzers.base import AnalyzerRegistry
         cls = AnalyzerRegistry.get(name)
         desc = cls.description if cls else "No description"
         table.add_row(name, desc)
@@ -302,7 +299,6 @@ def list_reporters():
     table.add_column("Description")
 
     for name in sorted(reporters):
-        from pipeline_doctor.reporters.base import ReporterRegistry
         cls = ReporterRegistry.get(name)
         desc = cls.description if cls else "No description"
         table.add_row(name, desc)
@@ -337,7 +333,6 @@ def list_integrations():
 @app.command()
 def version():
     """Show version information."""
-    from pipeline_doctor import __version__
     console.print(f"Pipeline Doctor v{__version__}")
 
 
@@ -345,7 +340,6 @@ def version():
 
 def get_integration(platform: PipelinePlatform, config: PipelineDoctorConfig):
     """Get integration instance for platform."""
-    from pipeline_doctor.integrations.base import IntegrationRegistry
 
     platform_config = config.platforms.get(platform.value, {})
     platform_config = platform_config.config if hasattr(platform_config, 'config') else platform_config
@@ -359,7 +353,6 @@ def get_integration(platform: PipelinePlatform, config: PipelineDoctorConfig):
 
 def get_reporter(format: str, config: PipelineDoctorConfig):
     """Get reporter instance for format."""
-    from pipeline_doctor.reporters.base import ReporterRegistry
 
     reporter_config = config.reporters.get(format, {})
     reporter_config = reporter_config.config if hasattr(reporter_config, 'config') else reporter_config
@@ -374,8 +367,6 @@ def get_reporter(format: str, config: PipelineDoctorConfig):
 
 async def analyze_run(run, config: PipelineDoctorConfig, analyzer_names: list[str] = None):
     """Analyze a single pipeline run."""
-    from pipeline_doctor.analyzers.base import AnalyzerRegistry
-    from pipeline_doctor.core.models import AnalysisReport
 
     report = AnalysisReport(
         pipeline_id=run.pipeline_id,
@@ -411,8 +402,6 @@ async def analyze_run(run, config: PipelineDoctorConfig, analyzer_names: list[st
 
 async def analyze_runs(runs, config: PipelineDoctorConfig, analyzer_names: list[str] = None):
     """Analyze multiple pipeline runs."""
-    from pipeline_doctor.analyzers.base import AnalyzerRegistry
-    from pipeline_doctor.core.models import AnalysisReport
 
     if not runs:
         return AnalysisReport(

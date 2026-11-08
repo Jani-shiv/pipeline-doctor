@@ -10,7 +10,6 @@ from pipeline_doctor.core.models import (
     PipelineRun,
 )
 
-
 # Constants to avoid magic values
 MIN_SEQUENTIAL_JOBS_FOR_PARALLELIZATION = 2
 CACHE_THRESHOLD_SECONDS = 60

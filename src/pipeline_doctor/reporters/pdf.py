@@ -5,6 +5,7 @@ from typing import Any
 
 from pipeline_doctor.core.models import AnalysisReport
 from pipeline_doctor.reporters.base import BaseReporter, ReporterRegistry
+from pipeline_doctor.reporters.html import HTMLReporter
 
 
 @ReporterRegistry.register
@@ -28,6 +29,11 @@ class PDFReporter(BaseReporter):
             self._HTML = HTML
             self._CSS = CSS
             self._FontConfiguration = FontConfiguration
+        except ImportError:
+            self._weasyprint_available = False
+            self._HTML = None
+            self._CSS = None
+            self._FontConfiguration = None
         except ImportError:
             self._weasyprint_available = False
 
@@ -61,7 +67,6 @@ class PDFReporter(BaseReporter):
 
     def _create_html_reporter(self):
         """Create HTML reporter for rendering."""
-        from pipeline_doctor.reporters.html import HTMLReporter
         return HTMLReporter(self.config, self.output_dir)
 
     def _render_html(self, report: AnalysisReport) -> str:
