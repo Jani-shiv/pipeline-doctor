@@ -172,9 +172,10 @@ async def run_with_timeout(
     """Run coroutine with timeout."""
     try:
         result: T = await asyncio.wait_for(coro(*args, **kwargs), timeout=timeout)  # type: ignore[arg-type]
-        return result
     except TimeoutError:
         raise TimeoutError(f"Operation timed out after {timeout}s")
+    else:
+        return result
 
 
 @asynccontextmanager
