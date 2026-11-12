@@ -16,7 +16,7 @@ class HTMLReporter(BaseReporter):
     name = "html"
     description = "Generates interactive HTML reports with charts"
 
-    def __init__(self, config: dict[str, Any] = None, output_dir: str = "./reports"):
+    def __init__(self, config: dict[str, Any] | None = None, output_dir: str = "./reports"):
         super().__init__(config, output_dir)
         self.template_name = self.get_config("template", "default")
         self.include_charts = self.get_config("include_charts", True)

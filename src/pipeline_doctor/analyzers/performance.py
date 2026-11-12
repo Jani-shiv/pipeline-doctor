@@ -19,7 +19,7 @@ class PerformanceAnalyzer(BaseAnalyzer):
     description = "Detects performance bottlenecks and slow-running jobs/steps"
     version = "1.0.0"
 
-    def __init__(self, config: dict[str, Any] = None):
+    def __init__(self, config: dict[str, Any] | None = None):
         super().__init__(config)
         self.thresholds = self.get_config("thresholds", {})
         self.compare_baseline = self.get_config("compare_baseline", True)

@@ -14,7 +14,7 @@ class MarkdownReporter(BaseReporter):
     name = "markdown"
     description = "Generates Markdown reports for documentation and GitHub"
 
-    def __init__(self, config: dict[str, Any] = None, output_dir: str = "./reports"):
+    def __init__(self, config: dict[str, Any] | None = None, output_dir: str = "./reports"):
         super().__init__(config, output_dir)
         self.include_summary = self.get_config("include_summary", True)
         self.include_details = self.get_config("include_details", True)
@@ -157,7 +157,7 @@ class GitHubMarkdownReporter(MarkdownReporter):
     name = "github-md"
     description = "Generates GitHub-flavored Markdown for PR comments and issues"
 
-    def __init__(self, config: dict[str, Any] = None, output_dir: str = "./reports"):
+    def __init__(self, config: dict[str, Any] | None = None, output_dir: str = "./reports"):
         super().__init__(config, output_dir)
         self.max_findings = self.get_config("max_findings", 50)
         self.collapse_details = self.get_config("collapse_details", True)

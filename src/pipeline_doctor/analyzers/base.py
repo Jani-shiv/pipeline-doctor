@@ -20,7 +20,7 @@ class BaseAnalyzer(ABC):
     description: str = "Base analyzer"
     version: str = "1.0.0"
 
-    def __init__(self, config: dict[str, Any] = None):
+    def __init__(self, config: dict[str, Any] | None = None):
         self.config = config or {}
         self._results: list[AnalysisResult] = []
 
@@ -100,12 +100,12 @@ class AnalyzerRegistry:
         return cls._analyzers.get(name)
 
     @classmethod
-    def create(cls, name: str, config: dict[str, Any] = None) -> BaseAnalyzer | None:
+    def create(cls, name: str, config: dict[str, Any] | None = None) -> BaseAnalyzer | None:
         """Create analyzer instance."""
         analyzer_class = cls.get(name)
         if not analyzer_class:
             return None
-        return analyzer_class(config)
+        return analyzer_class(config)  # type: ignore[no-any-return]
 
     @classmethod
     def create_all(cls, configs: dict[str, dict[str, Any]]) -> dict[str, BaseAnalyzer]:

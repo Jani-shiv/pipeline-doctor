@@ -30,6 +30,8 @@ from pipeline_doctor.integrations import get_available_integrations
 from pipeline_doctor.integrations import register_all as register_integrations
 from pipeline_doctor.reporters import get_available_reporters
 from pipeline_doctor.reporters import register_all as register_reporters
+from pipeline_doctor.reporters.base import ReporterRegistry
+from pipeline_doctor.integrations.base import IntegrationRegistry
 
 app = typer.Typer(
     name="pipeline-doctor",

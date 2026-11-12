@@ -24,10 +24,13 @@ class JenkinsIntegration(BaseIntegration):
 
     platform = PipelinePlatform.JENKINS
 
-    def __init__(self, config: dict[str, Any] = None):
+    def __init__(self, config: dict[str, Any] | None = None):
         super().__init__(config)
         self.url = self.config.get("url")
         self.job_name = self.config.get("job_name")
+
+        # HTTP client
+        # Type is defined in base class
 
     async def connect(self) -> None:
         """Establish connection to Jenkins."""
@@ -52,6 +55,10 @@ class JenkinsIntegration(BaseIntegration):
 
     async def _test_connection(self) -> None:
         """Test Jenkins connection."""
+        if not self._client:
+            raise RuntimeError("Client not initialized")
+        if not self.url:
+            raise ValueError("Jenkins URL must be configured")
         try:
             response = await self._client.get(urljoin(self.url, "/api/json"))
             response.raise_for_status()
@@ -70,7 +77,9 @@ class JenkinsIntegration(BaseIntegration):
         """Get job URL for API calls."""
         if not self.job_name:
             raise ValueError("Job name must be configured")
-        return urljoin(self.url, f"/job/{self.job_name}/")
+        if not self.url:
+            raise ValueError("Jenkins URL must be configured")
+        return str(urljoin(self.url, f"/job/{self.job_name}/"))
 
     @retry_with_backoff(max_attempts=3, exceptions=(httpx.RequestError,))
     async def get_pipeline(self, pipeline_id: str) -> Pipeline:
@@ -120,9 +129,13 @@ class JenkinsIntegration(BaseIntegration):
 
     @retry_with_backoff(max_attempts=3, exceptions=(httpx.RequestError,))
     async def get_run_logs(
-        self, pipeline_id: str, run_id: str, job_id: str = None
+        self, pipeline_id: str, run_id: str, job_id: str | None = None
     ) -> dict[str, Any]:
         """Get build logs."""
+        if not self._client:
+            raise RuntimeError("Not connected. Call connect() first.")
+        if not self.job_name:
+            raise ValueError("Job name must be configured")
         job_url = self._get_job_url()
         response = await self._client.get(
             f"{job_url}{run_id}/logText/progressiveText", params={"start": 0}
@@ -132,7 +145,7 @@ class JenkinsIntegration(BaseIntegration):
 
     @retry_with_backoff(max_attempts=3, exceptions=(httpx.RequestError,))
     async def trigger_pipeline(
-        self, pipeline_id: str, params: dict[str, Any] = None
+        self, pipeline_id: str, params: dict[str, Any] | None = None
     ) -> PipelineRun:
         """Trigger a new build."""
         job_url = self._get_job_url()
@@ -182,7 +195,7 @@ class JenkinsIntegration(BaseIntegration):
             metadata={"jenkins_data": data},
         )
 
-    def _parse_jenkins_status(self, result: str, building: bool) -> PipelineStatus:
+    def _parse_jenkins_status(self, result: str | None, building: bool) -> PipelineStatus:
         """Parse Jenkins result to PipelineStatus."""
         if building:
             return PipelineStatus.RUNNING

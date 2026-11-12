@@ -15,7 +15,7 @@ class PDFReporter(BaseReporter):
     name = "pdf"
     description = "Generates professional PDF reports"
 
-    def __init__(self, config: dict[str, Any] = None, output_dir: str = "./reports"):
+    def __init__(self, config: dict[str, Any] | None = None, output_dir: str = "./reports"):
         super().__init__(config, output_dir)
         self.page_size = self.get_config("page_size", "A4")
         self.margin = self.get_config("margin", "2cm")

@@ -14,7 +14,7 @@ class BaseReporter(ABC):
     name: str = "base"
     description: str = "Base reporter"
 
-    def __init__(self, config: dict[str, Any] = None, output_dir: str = "./reports"):
+    def __init__(self, config: dict[str, Any] | None = None, output_dir: str = "./reports"):
         self.config = config or {}
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
@@ -60,15 +60,15 @@ class ReporterRegistry:
 
     @classmethod
     def create(
-        cls, name: str, config: dict[str, Any] = None, output_dir: str = "./reports"
+        cls, name: str, config: dict[str, Any] | None = None, output_dir: str = "./reports"
     ) -> BaseReporter | None:
         """Create reporter instance."""
         reporter_class = cls.get(name)
         if not reporter_class:
             return None
-        return reporter_class(config, output_dir)
+        return reporter_class(config, output_dir)  # type: ignore[no-any-return]
 
     @classmethod
-    def list_available(cls) -> list:
+    def list_available(cls) -> list[str]:
         """List all registered reporter names."""
         return list(cls._reporters.keys())

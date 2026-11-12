@@ -21,7 +21,7 @@ class ReliabilityAnalyzer(BaseAnalyzer):
     description = "Detects flaky tests, unreliable jobs, and stability issues"
     version = "1.0.0"
 
-    def __init__(self, config: dict[str, Any] = None):
+    def __init__(self, config: dict[str, Any] | None = None):
         super().__init__(config)
         self.flaky_threshold = self.get_config("flaky_threshold", 0.1)
         self.min_runs_for_flaky = self.get_config("min_runs_for_flaky", 10)

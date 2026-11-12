@@ -24,7 +24,7 @@ class GitLabIntegration(BaseIntegration):
 
     platform = PipelinePlatform.GITLAB
 
-    def __init__(self, config: dict[str, Any] = None):
+    def __init__(self, config: dict[str, Any] | None = None):
         super().__init__(config)
         self.api_url = self.config.get("api_url", "https://gitlab.com/api/v4")
         self.project_id = self.config.get("project_id")
@@ -86,7 +86,7 @@ class GitLabIntegration(BaseIntegration):
         project_path = self._get_project_path()
         params = {"per_page": min(limit, 100), "page": (offset // 100) + 1}
         if status:
-            params["status"] = self._status_to_gitlab(status)
+            params["status"] = self._status_to_gitlab(status)  # type: ignore[assignment]
 
         data = await self._make_request(
             "GET",
@@ -111,13 +111,15 @@ class GitLabIntegration(BaseIntegration):
 
     @retry_with_backoff(max_attempts=3, exceptions=(httpx.RequestError,))
     async def get_run_logs(
-        self, pipeline_id: str, run_id: str, job_id: str = None
+        self, pipeline_id: str, run_id: str, job_id: str | None = None
     ) -> dict[str, Any]:
         """Get logs for a pipeline or job."""
         project_path = self._get_project_path()
 
         if job_id:
             # Get job trace/logs
+            if not self._client:
+                raise RuntimeError("Not connected. Call connect() first.")
             response = await self._client.get(
                 f"{self.api_url}/{project_path}/jobs/{job_id}/trace",
             )
@@ -133,7 +135,7 @@ class GitLabIntegration(BaseIntegration):
 
     @retry_with_backoff(max_attempts=3, exceptions=(httpx.RequestError,))
     async def trigger_pipeline(
-        self, pipeline_id: str, params: dict[str, Any] = None
+        self, pipeline_id: str, params: dict[str, Any] | None = None
     ) -> PipelineRun:
         """Trigger a new pipeline."""
         project_path = self._get_project_path()
@@ -196,7 +198,7 @@ class GitLabIntegration(BaseIntegration):
             metadata={"gitlab_data": data},
         )
 
-    def _parse_gitlab_status(self, status: str) -> PipelineStatus:
+    def _parse_gitlab_status(self, status: str | None) -> PipelineStatus:
         """Parse GitLab status to PipelineStatus."""
         if not status:
             return PipelineStatus.UNKNOWN
@@ -242,7 +244,7 @@ class GitLabIntegration(BaseIntegration):
 
         # GitLab doesn't provide steps in job API by default
         # Would need separate API call for job trace
-        steps = []
+        steps: list = []
 
         return PipelineJob(
             id=job_id,

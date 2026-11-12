@@ -23,7 +23,7 @@ class CircleCIIntegration(BaseIntegration):
 
     platform = PipelinePlatform.CIRCLECI
 
-    def __init__(self, config: dict[str, Any] = None):
+    def __init__(self, config: dict[str, Any] | None = None):
         super().__init__(config)
         self.api_url = self.config.get("api_url", "https://circleci.com/api/v2")
         self.project_slug = self.config.get("project_slug")  # e.g., "gh/org/repo"
@@ -59,7 +59,7 @@ class CircleCIIntegration(BaseIntegration):
             id=uuid4(),
             name=f"Pipeline {pipeline_id}",
             platform=PipelinePlatform.CIRCLECI,
-            repository=self.project_slug,
+            repository=str(self.project_slug) if self.project_slug else "",
             platform_id=pipeline_id,
             metadata={"circleci_data": data},
         )
@@ -94,11 +94,13 @@ class CircleCIIntegration(BaseIntegration):
 
     @retry_with_backoff(max_attempts=3, exceptions=(httpx.RequestError,))
     async def get_run_logs(
-        self, pipeline_id: str, run_id: str, job_id: str = None
+        self, pipeline_id: str, run_id: str, job_id: str | None = None
     ) -> dict[str, Any]:
         """Get logs for a pipeline or job."""
         if job_id:
             # Get job logs
+            if not self._client:
+                raise RuntimeError("Not connected. Call connect() first.")
             response = await self._client.get(
                 f"{self.api_url}/job/{job_id}/output",
             )
@@ -117,7 +119,7 @@ class CircleCIIntegration(BaseIntegration):
 
     @retry_with_backoff(max_attempts=3, exceptions=(httpx.RequestError,))
     async def trigger_pipeline(
-        self, pipeline_id: str, params: dict[str, Any] = None
+        self, pipeline_id: str, params: dict[str, Any] | None = None
     ) -> PipelineRun:
         """Trigger a new pipeline."""
         data = await self._make_request(
@@ -161,7 +163,7 @@ class CircleCIIntegration(BaseIntegration):
             metadata={"circleci_data": data},
         )
 
-    def _parse_circleci_status(self, state: str) -> PipelineStatus:
+    def _parse_circleci_status(self, state: str | None) -> PipelineStatus:
         """Parse CircleCI state to PipelineStatus."""
         if not state:
             return PipelineStatus.UNKNOWN

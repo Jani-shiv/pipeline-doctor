@@ -15,7 +15,7 @@ class JSONReporter(BaseReporter):
     name = "json"
     description = "Generates machine-readable JSON reports"
 
-    def __init__(self, config: dict[str, Any] = None, output_dir: str = "./reports"):
+    def __init__(self, config: dict[str, Any] | None = None, output_dir: str = "./reports"):
         super().__init__(config, output_dir)
         self.pretty = self.get_config("pretty", True)
         self.include_metadata = self.get_config("include_metadata", True)

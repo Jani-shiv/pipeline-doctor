@@ -170,7 +170,7 @@ class FailureAnalyzer(BaseAnalyzer):
         },
     }
 
-    def __init__(self, config: dict[str, Any] = None):
+    def __init__(self, config: dict[str, Any] | None = None):
         super().__init__(config)
         self.custom_patterns = self.get_config("custom_patterns", [])
         self.patterns = self._compile_patterns()

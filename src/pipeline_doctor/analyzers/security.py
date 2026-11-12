@@ -71,7 +71,7 @@ class SecurityAnalyzer(BaseAnalyzer):
         (r"(?i)readonly.*false", "Non-Readonly Root Filesystem"),
     ]
 
-    def __init__(self, config: dict[str, Any] = None):
+    def __init__(self, config: dict[str, Any] | None = None):
         super().__init__(config)
         self.scan_secrets = self.get_config("scan_secrets", True)
         self.scan_dependencies = self.get_config("scan_dependencies", True)

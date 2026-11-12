@@ -23,7 +23,7 @@ class AzureDevOpsIntegration(BaseIntegration):
 
     platform = PipelinePlatform.AZURE_DEVOPS
 
-    def __init__(self, config: dict[str, Any] = None):
+    def __init__(self, config: dict[str, Any] | None = None):
         super().__init__(config)
         self.organization = self.config.get("organization")
         self.project = self.config.get("project")
@@ -91,7 +91,7 @@ class AzureDevOpsIntegration(BaseIntegration):
             "$skip": offset,
         }
         if status:
-            params["resultFilter"] = self._status_to_azure(status)
+            params["resultFilter"] = self._status_to_azure(status)  # type: ignore[assignment]
 
         data = await self._make_request(
             "GET", f"{base_url}/pipelines/{pipeline_id}/runs", params=params
@@ -113,13 +113,15 @@ class AzureDevOpsIntegration(BaseIntegration):
 
     @retry_with_backoff(max_attempts=3, exceptions=(httpx.RequestError,))
     async def get_run_logs(
-        self, pipeline_id: str, run_id: str, job_id: str = None
+        self, pipeline_id: str, run_id: str, job_id: str | None = None
     ) -> dict[str, Any]:
         """Get logs for a run or job."""
         base_url = self._get_base_url()
 
         if job_id:
             # Get job logs
+            if not self._client:
+                raise RuntimeError("Not connected. Call connect() first.")
             response = await self._client.get(
                 f"{base_url}/pipelines/{pipeline_id}/runs/{run_id}/jobs/{job_id}/logs?api-version=7.1",
             )
@@ -135,7 +137,7 @@ class AzureDevOpsIntegration(BaseIntegration):
 
     @retry_with_backoff(max_attempts=3, exceptions=(httpx.RequestError,))
     async def trigger_pipeline(
-        self, pipeline_id: str, params: dict[str, Any] = None
+        self, pipeline_id: str, params: dict[str, Any] | None = None
     ) -> PipelineRun:
         """Trigger a new pipeline run."""
         base_url = self._get_base_url()
@@ -196,7 +198,7 @@ class AzureDevOpsIntegration(BaseIntegration):
             metadata={"azure_data": data},
         )
 
-    def _parse_azure_status(self, result: str, state: str) -> PipelineStatus:
+    def _parse_azure_status(self, result: str | None, state: str | None) -> PipelineStatus:
         """Parse Azure DevOps result/state to PipelineStatus."""
         if state:
             state_lower = state.lower()

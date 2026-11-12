@@ -23,7 +23,7 @@ class CostAnalyzer(BaseAnalyzer):
     description = "Calculates pipeline costs and identifies waste"
     version = "1.0.0"
 
-    def __init__(self, config: dict[str, Any] = None):
+    def __init__(self, config: dict[str, Any] | None = None):
         super().__init__(config)
         self.currency = self.get_config("currency", "USD")
         self.compute_cost_per_minute = self.get_config("compute_cost_per_minute", 0.008)

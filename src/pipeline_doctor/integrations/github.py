@@ -27,7 +27,7 @@ class GitHubIntegration(BaseIntegration):
 
     platform = PipelinePlatform.GITHUB
 
-    def __init__(self, config: dict[str, Any] = None):
+    def __init__(self, config: dict[str, Any] | None = None):
         super().__init__(config)
         self.api_url = self.config.get("api_url", "https://api.github.com")
         self.owner = self.config.get("owner")
@@ -91,7 +91,7 @@ class GitHubIntegration(BaseIntegration):
         repo_path = self._get_repo_path()
         params = {"per_page": min(limit, 100), "page": (offset // 100) + 1}
         if status:
-            params["status"] = self._status_to_github(status)
+            params["status"] = self._status_to_github(status)  # type: ignore[assignment]
 
         data = await self._make_request(
             "GET",
@@ -116,13 +116,15 @@ class GitHubIntegration(BaseIntegration):
 
     @retry_with_backoff(max_attempts=3, exceptions=(httpx.RequestError,))
     async def get_run_logs(
-        self, pipeline_id: str, run_id: str, job_id: str = None
+        self, pipeline_id: str, run_id: str, job_id: str | None = None
     ) -> dict[str, Any]:
         """Get logs for a run or job."""
         repo_path = self._get_repo_path()
 
         if job_id:
             # Get job logs
+            if not self._client:
+                raise RuntimeError("Not connected. Call connect() first.")
             response = await self._client.get(
                 f"{self.api_url}/{repo_path}/actions/jobs/{job_id}/logs",
                 headers={"Accept": "text/plain"},
@@ -139,7 +141,7 @@ class GitHubIntegration(BaseIntegration):
 
     @retry_with_backoff(max_attempts=3, exceptions=(httpx.RequestError,))
     async def trigger_pipeline(
-        self, pipeline_id: str, params: dict[str, Any] = None
+        self, pipeline_id: str, params: dict[str, Any] | None = None
     ) -> PipelineRun:
         """Trigger a new workflow run."""
         repo_path = self._get_repo_path()
@@ -182,7 +184,7 @@ class GitHubIntegration(BaseIntegration):
         }
         return mapping.get(status, "completed")
 
-    def _parse_run(self, data: dict[str, Any], pipeline_id: str = None) -> PipelineRun:
+    def _parse_run(self, data: dict[str, Any], pipeline_id: str | None = None) -> PipelineRun:
         """Parse GitHub workflow run data."""
         run_id = uuid4()
 
@@ -215,7 +217,7 @@ class GitHubIntegration(BaseIntegration):
         # This is a simplified version
         return run
 
-    def _parse_github_status(self, conclusion: str, status: str) -> PipelineStatus:
+    def _parse_github_status(self, conclusion: str | None, status: str | None) -> PipelineStatus:
         """Parse GitHub conclusion and status to PipelineStatus."""
         if conclusion:
             conclusion_lower = conclusion.lower()

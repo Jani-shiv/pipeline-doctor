@@ -75,14 +75,15 @@ def format_duration(seconds: float) -> str:
 
 def format_bytes(bytes_value: int) -> str:
     """Format bytes to human-readable string."""
+    value = float(bytes_value)
     for unit in ["B", "KB", "MB", "GB", "TB"]:
-        if bytes_value < 1024:
-            return f"{bytes_value:.1f}{unit}"
-        bytes_value /= 1024
-    return f"{bytes_value:.1f}PB"
+        if value < 1024:
+            return f"{value:.1f}{unit}"
+        value /= 1024
+    return f"{value:.1f}PB"
 
 
-def sanitize_for_logging(data: Any, sensitive_keys: list[str] = None) -> Any:
+def sanitize_for_logging(data: Any, sensitive_keys: list[str] | None = None) -> Any:
     """Remove sensitive data from logs."""
     if sensitive_keys is None:
         sensitive_keys = [
@@ -112,7 +113,8 @@ def load_json_file(path: Path) -> dict[str, Any]:
     """Load JSON file with error handling."""
     try:
         with open(path, encoding="utf-8") as f:
-            return json.load(f)
+            data: dict[str, Any] = json.load(f)
+            return data
     except json.JSONDecodeError as e:
         logger.exception("failed_to_parse_json", path=str(path), error=str(e))
         raise
@@ -138,7 +140,8 @@ def load_yaml_file(path: Path) -> dict[str, Any]:
 
     try:
         with open(path, encoding="utf-8") as f:
-            return yaml.safe_load(f)
+            data: dict[str, Any] = yaml.safe_load(f)
+            return data
     except yaml.YAMLError as e:
         logger.exception("failed_to_parse_yaml", path=str(path), error=str(e))
         raise
@@ -168,7 +171,8 @@ async def run_with_timeout(
 ) -> T:
     """Run coroutine with timeout."""
     try:
-        return await asyncio.wait_for(coro(*args, **kwargs), timeout=timeout)
+        result: T = await asyncio.wait_for(coro(*args, **kwargs), timeout=timeout)  # type: ignore[arg-type]
+        return result
     except TimeoutError:
         raise TimeoutError(f"Operation timed out after {timeout}s")
 
@@ -190,17 +194,17 @@ def retry_with_backoff(
     base_delay: float = 1.0,
     max_delay: float = 60.0,
     exponential_base: float = 2.0,
-    exceptions: tuple = (Exception,),
-) -> Callable:
+    exceptions: tuple[type[BaseException], ...] = (Exception,),
+) -> Callable[[Callable[..., T]], Callable[..., T]]:
     """Decorator for retry with exponential backoff."""
 
     def decorator(func: Callable[..., T]) -> Callable[..., T]:
         @wraps(func)
         async def async_wrapper(*args: Any, **kwargs: Any) -> T:
-            last_exception = None
+            last_exception: BaseException | None = None
             for attempt in range(max_attempts):
                 try:
-                    return await func(*args, **kwargs)
+                    return await func(*args, **kwargs)  # type: ignore[no-any-return, misc]
                 except exceptions as e:
                     last_exception = e
                     if attempt == max_attempts - 1:
@@ -215,14 +219,16 @@ def retry_with_backoff(
                         error=str(e),
                     )
                     await asyncio.sleep(delay)
-            raise last_exception
+            if last_exception:
+                raise last_exception
+            raise RuntimeError("Retry failed with no exception")
 
         @wraps(func)
         def sync_wrapper(*args: Any, **kwargs: Any) -> T:
-            last_exception = None
+            last_exception: BaseException | None = None
             for attempt in range(max_attempts):
                 try:
-                    return func(*args, **kwargs)
+                    return func(*args, **kwargs)  # type: ignore[no-any-return, misc]
                 except exceptions as e:
                     last_exception = e
                     if attempt == max_attempts - 1:
@@ -237,11 +243,13 @@ def retry_with_backoff(
                         error=str(e),
                     )
                     time.sleep(delay)
-            raise last_exception
+            if last_exception:
+                raise last_exception
+            raise RuntimeError("Retry failed with no exception")
 
         if asyncio.iscoroutinefunction(func):
-            return async_wrapper
-        return sync_wrapper
+            return async_wrapper  # type: ignore[return-value]
+        return sync_wrapper  # type: ignore[return-value]
 
     return decorator
 
@@ -278,7 +286,7 @@ class AsyncRateLimiter:
     def __init__(self, rate: int, per: float = 60.0):
         self.rate = rate
         self.per = per
-        self._tokens = rate
+        self._tokens: float = float(rate)
         self._last_update = time.monotonic()
         self._lock = asyncio.Lock()
 

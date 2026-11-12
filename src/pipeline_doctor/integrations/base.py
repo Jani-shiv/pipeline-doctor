@@ -3,6 +3,8 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
+import httpx
+
 from pipeline_doctor.core.exceptions import (
     AuthenticationError,
     PipelineNotFoundError,
@@ -23,7 +25,7 @@ class BaseIntegration(ABC):
 
     platform: PipelinePlatform
 
-    def __init__(self, config: dict[str, Any] = None):
+    def __init__(self, config: dict[str, Any] | None = None):
         self.config = config or {}
         self.token = self.config.get("token")
         self.api_url = self.config.get("api_url")
@@ -37,7 +39,7 @@ class BaseIntegration(ABC):
         self._rate_limiter = AsyncRateLimiter(self.rate_limit, per=60.0)
 
         # HTTP client (initialized in connect)
-        self._client = None
+        self._client: httpx.AsyncClient | None = None
 
     @abstractmethod
     async def connect(self) -> None:
@@ -72,14 +74,14 @@ class BaseIntegration(ABC):
 
     @abstractmethod
     async def get_run_logs(
-        self, pipeline_id: str, run_id: str, job_id: str = None
+        self, pipeline_id: str, run_id: str, job_id: str | None = None
     ) -> dict[str, Any]:
         """Get logs for a run or job."""
         pass
 
     @abstractmethod
     async def trigger_pipeline(
-        self, pipeline_id: str, params: dict[str, Any] = None
+        self, pipeline_id: str, params: dict[str, Any] | None = None
     ) -> PipelineRun:
         """Trigger a new pipeline run."""
         pass
@@ -93,15 +95,18 @@ class BaseIntegration(ABC):
         self,
         method: str,
         path: str,
-        params: dict[str, Any] = None,
-        json: dict[str, Any] = None,
-        headers: dict[str, str] = None,
+        params: dict[str, Any] | None = None,
+        json: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
     ) -> Any:
         """Make HTTP request with rate limiting and error handling."""
         await self._rate_limiter.acquire()
 
         if not self._client:
             raise PlatformError("Not connected. Call connect() first.")
+
+        if not self.api_url:
+            raise PlatformError("API URL not configured")
 
         url = f"{self.api_url.rstrip('/')}/{path.lstrip('/')}"
         request_headers = {"Accept": "application/json"}
@@ -184,12 +189,12 @@ class IntegrationRegistry:
         return cls._integrations.get(platform)
 
     @classmethod
-    def create(cls, platform: str, config: dict[str, Any] = None) -> BaseIntegration | None:
+    def create(cls, platform: str, config: dict[str, Any] | None = None) -> BaseIntegration | None:
         """Create integration instance."""
         integration_class = cls.get(platform)
         if not integration_class:
             return None
-        return integration_class(config)
+        return integration_class(config)  # type: ignore[no-any-return]
 
     @classmethod
     def list_available(cls) -> list[str]:
