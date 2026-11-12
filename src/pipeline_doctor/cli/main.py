@@ -4,6 +4,7 @@ import asyncio
 import logging
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from typing import Any
 from uuid import uuid4
 
 import httpx
@@ -19,6 +20,7 @@ from pipeline_doctor.analyzers import register_all as register_analyzers
 from pipeline_doctor.analyzers.base import AnalyzerRegistry
 from pipeline_doctor.core.config import PipelineDoctorConfig, load_config
 from pipeline_doctor.core.models import (
+    AnalysisReport,
     PipelineJob,
     PipelinePlatform,
     PipelineRun,
@@ -30,8 +32,8 @@ from pipeline_doctor.integrations import get_available_integrations
 from pipeline_doctor.integrations import register_all as register_integrations
 from pipeline_doctor.reporters import get_available_reporters
 from pipeline_doctor.reporters import register_all as register_reporters
-from pipeline_doctor.reporters.base import ReporterRegistry
-from pipeline_doctor.integrations.base import IntegrationRegistry
+from pipeline_doctor.reporters.base import ReporterRegistry, BaseReporter
+from pipeline_doctor.integrations.base import IntegrationRegistry, BaseIntegration
 
 app = typer.Typer(
     name="pipeline-doctor",
@@ -85,11 +87,11 @@ def analyze(
     ),
     days: int = typer.Option(30, "--days", "-d", help="Number of days of history to analyze"),
     limit: int = typer.Option(100, "--limit", "-l", help="Maximum number of runs to analyze"),
-):
+) -> None:
     """Analyze pipeline runs for issues."""
     config: PipelineDoctorConfig = ctx.obj
 
-    async def _analyze():
+    async def _analyze() -> None:
         with Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
@@ -157,11 +159,11 @@ def monitor(
     webhook_url: str | None = typer.Option(None, "--webhook", help="Webhook URL for notifications"),
     interval: int = typer.Option(60, "--interval", "-i", help="Polling interval in seconds"),
     analyzers: list[str] = typer.Option(None, "--analyzer", "-a", help="Analyzers to run"),
-):
+) -> None:
     """Monitor pipeline runs in real-time."""
     config: PipelineDoctorConfig = ctx.obj
 
-    async def _monitor():
+    async def _monitor() -> None:
         integration = get_integration(platform, config)
         if not integration:
             console.print(f"[red]Error:[/red] Unsupported platform: {platform}")
@@ -212,11 +214,11 @@ def report(
     ),
     output: Path | None = typer.Option(None, "--output", "-o", help="Output file path"),
     analyzers: list[str] = typer.Option(None, "--analyzer", "-a", help="Analyzers to include"),
-):
+) -> None:
     """Generate historical health report for a pipeline."""
     config: PipelineDoctorConfig = ctx.obj
 
-    async def _report():
+    async def _report() -> None:
         integration = get_integration(platform, config)
         if not integration:
             console.print(f"[red]Error:[/red] Unsupported platform: {platform}")
@@ -243,6 +245,9 @@ def report(
 
             progress.update(task, description="Generating report...")
             reporter = get_reporter(format, config)
+            if not reporter:
+                console.print(f"[red]Error:[/red] Unsupported format: {format}")
+                raise typer.Exit(1)
             output_path = output or reporter.get_output_path(report, format)
             await reporter.generate(report, output_path)
 
@@ -265,11 +270,11 @@ def scan(
     ),
     format: str = typer.Option("markdown", "--format", "-f", help="Output format"),
     output: Path | None = typer.Option(None, "--output", "-o", help="Output file path"),
-):
+) -> None:
     """Scan local pipeline configuration for issues."""
     config: PipelineDoctorConfig = ctx.obj
 
-    async def _scan():
+    async def _scan() -> None:
         with Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
@@ -280,6 +285,9 @@ def scan(
             progress.update(task, description="Generating report...")
 
             reporter = get_reporter(format, config)
+            if not reporter:
+                console.print(f"[red]Error:[/red] Unsupported format: {format}")
+                raise typer.Exit(1)
             output_path = output or reporter.get_output_path(report, format)
             await reporter.generate(report, output_path)
 
@@ -290,7 +298,7 @@ def scan(
 
 
 @app.command()
-def list_analyzers():
+def list_analyzers() -> None:
     """List available analyzers."""
     register_analyzers()
     analyzers = get_available_analyzers()
@@ -302,14 +310,14 @@ def list_analyzers():
     for name in sorted(analyzers):
         # Get description from registry
         cls = AnalyzerRegistry.get(name)
-        desc = cls.description if cls else "No description"
+        desc = getattr(cls, "description", "No description") if cls else "No description"
         table.add_row(name, desc)
 
     console.print(table)
 
 
 @app.command()
-def list_reporters():
+def list_reporters() -> None:
     """List available reporters."""
     register_reporters()
     reporters = get_available_reporters()
@@ -320,14 +328,14 @@ def list_reporters():
 
     for name in sorted(reporters):
         cls = ReporterRegistry.get(name)
-        desc = cls.description if cls else "No description"
+        desc = getattr(cls, "description", "No description") if cls else "No description"
         table.add_row(name, desc)
 
     console.print(table)
 
 
 @app.command()
-def list_integrations():
+def list_integrations() -> None:
     """List available platform integrations."""
     register_integrations()
     integrations = get_available_integrations()
@@ -351,7 +359,7 @@ def list_integrations():
 
 
 @app.command()
-def version():
+def version() -> None:
     """Show version information."""
     console.print(f"Pipeline Doctor v{__version__}")
 
@@ -359,10 +367,12 @@ def version():
 # Helper functions
 
 
-def get_integration(platform: PipelinePlatform, config: PipelineDoctorConfig):
+def get_integration(
+    platform: PipelinePlatform, config: PipelineDoctorConfig
+) -> BaseIntegration | None:
     """Get integration instance for platform."""
 
-    platform_config = config.platforms.get(platform.value, {})
+    platform_config: Any = config.platforms.get(platform.value, {})
     platform_config = (
         platform_config.config if hasattr(platform_config, "config") else platform_config
     )
@@ -371,13 +381,13 @@ def get_integration(platform: PipelinePlatform, config: PipelineDoctorConfig):
     if not integration_class:
         return None
 
-    return integration_class(platform_config)
+    return integration_class(platform_config)  # type: ignore[no-any-return]
 
 
-def get_reporter(format: str, config: PipelineDoctorConfig):
+def get_reporter(format: str, config: PipelineDoctorConfig) -> BaseReporter | None:
     """Get reporter instance for format."""
 
-    reporter_config = config.reporters.get(format, {})
+    reporter_config: Any = config.reporters.get(format, {})
     reporter_config = (
         reporter_config.config if hasattr(reporter_config, "config") else reporter_config
     )
@@ -391,10 +401,12 @@ def get_reporter(format: str, config: PipelineDoctorConfig):
     if not reporter_class:
         return None
 
-    return reporter_class(reporter_config, output_dir)
+    return reporter_class(reporter_config, output_dir)  # type: ignore[no-any-return]
 
 
-async def analyze_run(run, config: PipelineDoctorConfig, analyzer_names: list[str] = None):
+async def analyze_run(
+    run: PipelineRun, config: PipelineDoctorConfig, analyzer_names: list[str] | None = None
+) -> AnalysisReport:
     """Analyze a single pipeline run."""
 
     report = AnalysisReport(
@@ -409,17 +421,17 @@ async def analyze_run(run, config: PipelineDoctorConfig, analyzer_names: list[st
         for name in analyzer_names:
             cls = AnalyzerRegistry.get(name)
             if cls:
-                analyzer_config = config.analyzers.get(name, {})
+                analyzer_config: Any = config.analyzers.get(name, {})
                 analyzer_config = (
                     analyzer_config.config
                     if hasattr(analyzer_config, "config")
                     else analyzer_config
                 )
-                analyzers[name] = cls(analyzer_config)
+                analyzers[name] = cls(analyzer_config)  # type: ignore[arg-type]
     else:
         analyzers = {}
         for name, analyzer_config in config.analyzers.items():
-            if analyzer_config.enabled:
+            if getattr(analyzer_config, "enabled", True):
                 cls = AnalyzerRegistry.get(name)
                 if cls:
                     ac = (
@@ -427,7 +439,7 @@ async def analyze_run(run, config: PipelineDoctorConfig, analyzer_names: list[st
                         if hasattr(analyzer_config, "config")
                         else analyzer_config
                     )
-                    analyzers[name] = cls(ac)
+                    analyzers[name] = cls(ac)  # type: ignore[arg-type]
 
     # Run analyzers
     for name, analyzer in analyzers.items():
@@ -437,13 +449,15 @@ async def analyze_run(run, config: PipelineDoctorConfig, analyzer_names: list[st
     return report
 
 
-async def analyze_runs(runs, config: PipelineDoctorConfig, analyzer_names: list[str] = None):
+async def analyze_runs(
+    runs: list[PipelineRun], config: PipelineDoctorConfig, analyzer_names: list[str] | None = None
+) -> AnalysisReport:
     """Analyze multiple pipeline runs."""
 
     if not runs:
         return AnalysisReport(
-            pipeline_id=runs[0].pipeline_id if runs else None,
-            run_id=None,
+            pipeline_id=uuid4(),
+            run_id=uuid4(),
             platform="unknown",
         )
 
@@ -453,7 +467,7 @@ async def analyze_runs(runs, config: PipelineDoctorConfig, analyzer_names: list[
 
     report = AnalysisReport(
         pipeline_id=pipeline_id,
-        run_id=None,  # Multi-run report
+        run_id=uuid4(),  # Multi-run report
         platform=platform,
     )
 
@@ -463,17 +477,17 @@ async def analyze_runs(runs, config: PipelineDoctorConfig, analyzer_names: list[
         for name in analyzer_names:
             cls = AnalyzerRegistry.get(name)
             if cls:
-                analyzer_config = config.analyzers.get(name, {})
+                analyzer_config: Any = config.analyzers.get(name, {})
                 analyzer_config = (
                     analyzer_config.config
                     if hasattr(analyzer_config, "config")
                     else analyzer_config
                 )
-                analyzers[name] = cls(analyzer_config)
+                analyzers[name] = cls(analyzer_config)  # type: ignore[arg-type]
     else:
         analyzers = {}
         for name, analyzer_config in config.analyzers.items():
-            if analyzer_config.enabled:
+            if getattr(analyzer_config, "enabled", True):
                 cls = AnalyzerRegistry.get(name)
                 if cls:
                     ac = (
@@ -481,7 +495,7 @@ async def analyze_runs(runs, config: PipelineDoctorConfig, analyzer_names: list[
                         if hasattr(analyzer_config, "config")
                         else analyzer_config
                     )
-                    analyzers[name] = cls(ac)
+                    analyzers[name] = cls(ac)  # type: ignore[arg-type]
 
     # Run analyzers on each run
     for run in runs:
@@ -501,8 +515,8 @@ async def analyze_local_config(
     config_file: Path,
     platform: PipelinePlatform,
     config: PipelineDoctorConfig,
-    analyzer_names: list[str] = None,
-):
+    analyzer_names: list[str] | None = None,
+) -> AnalysisReport:
     """Analyze a local pipeline configuration file."""
     # Parse config file
     data = load_yaml_file(config_file)
@@ -582,7 +596,7 @@ def _parse_config_jobs(data: dict, platform: PipelinePlatform) -> list:
     return jobs
 
 
-async def send_webhook(webhook_url: str, report):
+async def send_webhook(webhook_url: str, report: AnalysisReport) -> None:
     """Send report summary to webhook."""
     payload = {
         "report_id": str(report.id),
@@ -599,7 +613,7 @@ async def send_webhook(webhook_url: str, report):
         pass  # Silently fail webhook
 
 
-def print_summary(report, console: Console):
+def print_summary(report: AnalysisReport, console: Console) -> None:
     """Print analysis summary to console."""
     console.print("\n" + "=" * 60)
     console.print(

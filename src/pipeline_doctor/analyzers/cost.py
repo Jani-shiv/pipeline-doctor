@@ -71,8 +71,8 @@ class CostAnalyzer(BaseAnalyzer):
 
     def _calculate_compute_cost(self, run: PipelineRun) -> float:
         """Calculate estimated compute cost for a run."""
-        total_minutes = run.duration_seconds / 60
-        return total_minutes * self.compute_cost_per_minute
+        total_minutes = (run.duration_seconds or 0) / 60
+        return float(total_minutes * self.compute_cost_per_minute)
 
     def _check_waste(self, result: AnalysisResult, run: PipelineRun) -> None:
         """Check for wasted compute resources."""
@@ -115,8 +115,13 @@ class CostAnalyzer(BaseAnalyzer):
                 sequential_jobs.append(job)
 
         if len(sequential_jobs) > MIN_SEQUENTIAL_JOBS_FOR_PARALLELIZATION:
-            total_time = sum(j.duration_seconds for j in sequential_jobs)
-            max_time = max(j.duration_seconds for j in sequential_jobs)
+            durations = [
+                j.duration_seconds for j in sequential_jobs if j.duration_seconds is not None
+            ]
+            if not durations:
+                return
+            total_time = sum(durations)
+            max_time = max(durations)
             potential_savings = total_time - max_time
             savings_cost = (potential_savings / 60) * self.compute_cost_per_minute
 

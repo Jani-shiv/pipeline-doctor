@@ -8,6 +8,7 @@ from pipeline_doctor.core.models import (
     AnalysisResult,
     FindingCategory,
     FindingSeverity,
+    PipelineJob,
     PipelineRun,
 )
 
@@ -219,7 +220,7 @@ class FailureAnalyzer(BaseAnalyzer):
 
         return result
 
-    def _get_job_logs(self, job: PipelineRun) -> str:
+    def _get_job_logs(self, job: PipelineJob) -> str:
         """Aggregate logs from all steps in a job."""
         logs = []
         for step in job.steps:

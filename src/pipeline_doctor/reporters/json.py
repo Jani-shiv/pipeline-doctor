@@ -33,7 +33,7 @@ class JSONReporter(BaseReporter):
 
     def _prepare_data(self, report: AnalysisReport) -> dict[str, Any]:
         """Prepare data for JSON serialization."""
-        data = {
+        data: dict[str, Any] = {
             "report_id": str(report.id),
             "pipeline_id": str(report.pipeline_id),
             "run_id": str(report.run_id),
@@ -55,7 +55,7 @@ class JSONReporter(BaseReporter):
             data["metadata"] = report.metadata
 
         for analyzer_result in report.analyzer_results:
-            analyzer_data = {
+            analyzer_data: dict[str, Any] = {
                 "name": analyzer_result.analyzer_name,
                 "version": analyzer_result.analyzer_version,
                 "started_at": analyzer_result.started_at.isoformat()

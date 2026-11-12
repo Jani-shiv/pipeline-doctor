@@ -23,8 +23,8 @@ class PDFReporter(BaseReporter):
 
         # Try to import weasyprint
         try:
-            from weasyprint import CSS, HTML
-            from weasyprint.text.fonts import FontConfiguration
+            from weasyprint import CSS, HTML  # type: ignore[import-untyped]
+            from weasyprint.text.fonts import FontConfiguration  # type: ignore[import-untyped]
 
             self._weasyprint_available = True
             self._HTML = HTML
@@ -35,8 +35,6 @@ class PDFReporter(BaseReporter):
             self._HTML = None
             self._CSS = None
             self._FontConfiguration = None
-        except ImportError:
-            self._weasyprint_available = False
 
     async def generate(self, report: AnalysisReport, output_path: Path | None = None) -> Path:
         """Generate PDF report."""
@@ -48,9 +46,13 @@ class PDFReporter(BaseReporter):
         if output_path is None:
             output_path = self.get_output_path(report, "pdf")
 
-        # Generate HTML first
+        # Create HTML reporter for template rendering
         html_reporter = self._create_html_reporter()
-        html_content = html_reporter._render_html(report)
+        template_data = html_reporter._prepare_template_data(report)
+
+        # Use a PDF-optimized template
+        template = html_reporter.env.from_string(self._get_pdf_template())
+        html_content = str(template.render(**template_data))
 
         # Convert to PDF
         font_config = self._FontConfiguration()
@@ -65,18 +67,9 @@ class PDFReporter(BaseReporter):
 
         return output_path
 
-    def _create_html_reporter(self):
+    def _create_html_reporter(self) -> HTMLReporter:
         """Create HTML reporter for rendering."""
-        return HTMLReporter(self.config, self.output_dir)
-
-    def _render_html(self, report: AnalysisReport) -> str:
-        """Render HTML content for PDF."""
-        html_reporter = self._create_html_reporter()
-        template_data = html_reporter._prepare_template_data(report)
-
-        # Use a PDF-optimized template
-        template = html_reporter.env.from_string(self._get_pdf_template())
-        return template.render(**template_data)
+        return HTMLReporter(self.config, str(self.output_dir))
 
     def _get_pdf_template(self) -> str:
         """Get PDF-optimized HTML template."""

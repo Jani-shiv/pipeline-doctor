@@ -7,7 +7,9 @@ from pipeline_doctor.core.models import (
     AnalysisResult,
     FindingCategory,
     FindingSeverity,
+    PipelineJob,
     PipelineRun,
+    PipelineStep,
 )
 
 
@@ -86,7 +88,7 @@ class PerformanceAnalyzer(BaseAnalyzer):
             )
 
     def _check_job_duration(
-        self, result: AnalysisResult, job: PipelineRun, run: PipelineRun
+        self, result: AnalysisResult, job: PipelineJob, run: PipelineRun
     ) -> None:
         """Check individual job duration."""
         if not job.duration_seconds:
@@ -134,7 +136,7 @@ class PerformanceAnalyzer(BaseAnalyzer):
             )
 
     def _check_step_duration(
-        self, result: AnalysisResult, step: PipelineRun, job_name: str
+        self, result: AnalysisResult, step: PipelineStep, job_name: str
     ) -> None:
         """Check individual step duration."""
         if not step.duration_seconds:
@@ -182,7 +184,11 @@ class PerformanceAnalyzer(BaseAnalyzer):
             return
 
         # Check first job start time vs pipeline start
-        first_job = min(run.jobs, key=lambda j: j.started_at or run.started_at)
+        def _get_start_time(job: PipelineJob) -> float:
+            dt = job.started_at or run.started_at
+            return dt.timestamp() if dt else float("inf")
+
+        first_job = min(run.jobs, key=_get_start_time)
         if first_job.started_at:
             queue_time = (first_job.started_at - run.started_at).total_seconds()
 

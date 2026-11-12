@@ -69,7 +69,9 @@ class PipelineStep(BaseModel):
     @field_validator("duration_seconds", mode="before")
     @classmethod
     def compute_duration(cls, v: Any) -> float | None:
-        return v
+        if v is None:
+            return None
+        return float(v)
 
 
 class PipelineJob(BaseModel):
@@ -113,7 +115,9 @@ class PipelineJob(BaseModel):
     @field_validator("duration_seconds", mode="before")
     @classmethod
     def compute_duration(cls, v: Any) -> float | None:
-        return v
+        if v is None:
+            return None
+        return float(v)
 
 
 class PipelineRun(BaseModel):
@@ -172,7 +176,9 @@ class PipelineRun(BaseModel):
     @field_validator("duration_seconds", mode="before")
     @classmethod
     def compute_duration(cls, v: Any) -> float | None:
-        return v
+        if v is None:
+            return None
+        return float(v)
 
 
 class Pipeline(BaseModel):
@@ -209,7 +215,9 @@ class Pipeline(BaseModel):
 
     @property
     def average_duration(self) -> float | None:
-        completed = [r for r in self.runs if r.is_completed and r.duration_seconds]
+        completed = [r for r in self.runs if r.is_completed and r.duration_seconds is not None]
         if not completed:
             return None
-        return sum(r.duration_seconds for r in completed) / len(completed)
+        return sum(r.duration_seconds for r in completed if r.duration_seconds is not None) / len(
+            completed
+        )
