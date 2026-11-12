@@ -6,7 +6,9 @@ from typing import Any
 class PipelineDoctorError(Exception):
     """Base exception for Pipeline Doctor."""
 
-    def __init__(self, message: str, code: str = "PIPELINE_DOCTOR_ERROR", details: dict | None = None):
+    def __init__(
+        self, message: str, code: str = "PIPELINE_DOCTOR_ERROR", details: dict | None = None
+    ):
         super().__init__(message)
         self.message = message
         self.code = code
@@ -40,7 +42,11 @@ class RateLimitError(PlatformError):
     """Rate limit exceeded."""
 
     def __init__(
-        self, message: str, platform: str | None = None, retry_after: int | None = None, details: dict | None = None
+        self,
+        message: str,
+        platform: str | None = None,
+        retry_after: int | None = None,
+        details: dict | None = None,
     ):
         super().__init__(message, platform, details)
         self.code = "RATE_LIMIT_ERROR"
@@ -51,7 +57,11 @@ class PipelineNotFoundError(PlatformError):
     """Pipeline not found."""
 
     def __init__(
-        self, message: str, platform: str | None = None, pipeline_id: str | None = None, details: dict | None = None
+        self,
+        message: str,
+        platform: str | None = None,
+        pipeline_id: str | None = None,
+        details: dict | None = None,
     ):
         super().__init__(message, platform, details)
         self.code = "PIPELINE_NOT_FOUND"
@@ -62,7 +72,11 @@ class RunNotFoundError(PlatformError):
     """Pipeline run not found."""
 
     def __init__(
-        self, message: str, platform: str | None = None, run_id: str | None = None, details: dict | None = None
+        self,
+        message: str,
+        platform: str | None = None,
+        run_id: str | None = None,
+        details: dict | None = None,
     ):
         super().__init__(message, platform, details)
         self.code = "RUN_NOT_FOUND"
@@ -104,7 +118,13 @@ class StorageError(PipelineDoctorError):
 class ValidationError(PipelineDoctorError):
     """Data validation errors."""
 
-    def __init__(self, message: str, field: str | None = None, value: Any | None = None, details: dict | None = None):
+    def __init__(
+        self,
+        message: str,
+        field: str | None = None,
+        value: Any | None = None,
+        details: dict | None = None,
+    ):
         super().__init__(message, "VALIDATION_ERROR", details)
         self.field = field
         self.value = value
